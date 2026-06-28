@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suliwaa Bot - Master Admin Ultimate</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* Indikator Koneksi */
+        #network-status { position: fixed; top: 0; left: 0; width: 100%; padding: 10px; text-align: center; font-size: 13px; font-weight: bold; color: #ffffff; background: #ff4d4d; z-index: 10000; transform: translateY(-100%); transition: transform 0.3s ease-in-out; box-sizing: border-box; }
+        #network-status.show-offline { transform: translateY(0); }
+        #network-status.show-online { background: #a3ff47; color: #000000; transform: translateY(0); }
+        
+        .trx-item { display: flex; align-items: center; background: #111; padding: 15px; border-radius: 15px; margin-bottom: 12px; border: 1px solid #222; cursor: pointer; transition: 0.2s; }
+        .trx-item:active { transform: scale(0.98); background: #1a1a1a; }
+        .trx-icon { width: 45px; height: 45px; border-radius: 12px; background: #222; display: flex; justify-content: center; align-items: center; font-size: 20px; margin-right: 15px; }
+        .trx-details { flex-grow: 1; }
+        .trx-title { font-weight: bold; font-size: 14px; margin: 0 0 4px 0; }
+        .trx-date { font-size: 11px; color: #888; margin: 0; }
+        .trx-amount { font-weight: bold; font-size: 16px; text-align: right; }
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; margin-top: 5px; }
+        .status-success { background: rgba(163, 255, 71, 0.15); color: #a3ff47; }
+        .status-pending { background: rgba(255, 165, 0, 0.15); color: #ffa500; }
+        
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .input-dark { flex-grow: 1; padding: 12px; border-radius: 12px; border: 1px solid #333; background: #111; color: #fff; outline: none; width: 100%; box-sizing: border-box;}
+        .input-dark:focus { border-color: var(--bg-utama); }
+        .btn-action { background: var(--bg-utama); color: #000; font-weight: bold; border: none; border-radius: 12px; padding: 12px 20px; cursor: pointer; }
+        
+        :root { --bg-utama: #a3ff47; --bg-card: #000000; --teks-card: #ffffff; }
+        body { background-color: var(--bg-utama); font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 100px; }
+        .tab-content { display: none; padding: 15px; }
+        .tab-content.active { display: block; }
+        .card { background: var(--bg-card); color: var(--teks-card); border-radius: 20px; padding: 20px; margin-bottom: 15px; }
+        .menu-item { background: var(--bg-card); color: var(--teks-card); padding: 18px; border-radius: 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #000; display: flex; justify-content: space-around; padding: 15px 0; color: #a0a0a0; z-index: 999; }
+        .nav-item.active { color: var(--bg-utama); font-weight: bold; }
+        .wallet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn-wallet { background: #fff; color: #000; padding: 12px; border-radius: 12px; text-align: center; font-weight: bold; cursor: pointer; border: 2px solid #000; }
+        .btn-wallet:active { transform: scale(0.95); }
+        .wallet-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+
+        .ad-card-container { background: var(--bg-card); color: var(--teks-card); border-radius: 18px; margin-bottom: 12px; padding: 18px; display: flex; flex-direction: column; cursor: pointer; border: 1px solid #222; overflow: hidden; position: relative; transition: 0.2s; }
+        .ad-card-container:active { transform: scale(0.98); }
+        .ad-card-main { display: flex; justify-content: space-between; align-items: center; width: 100%; z-index: 2; }
+        .progress-bar-bg { width: 100%; height: 5px; background: #222; border-radius: 10px; margin-top: 12px; display: none; overflow: hidden; z-index: 2; }
+        .progress-bar-fill { height: 100%; width: 0%; background: var(--bg-utama); border-radius: 10px; transition: width 0s linear; }
+
+        .privilege-box { background: #222; padding: 10px; border-radius: 8px; margin-top: 8px; font-size: 12px; display: none; }
+        .privilege-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #fff; }
+        .privilege-item input { width: 16px; height: 16px; accent-color: var(--bg-utama); }
+    </style>
+</head>
+<body>
+    <div id="network-status">⚠️ Koneksi Terputus!</div>
+
+    <!-- Teks Berjalan Pengumuman Sistem Global -->
+    <div id="container-marquee-global" style="display: none; background: #000; color: #ff4d4d; padding: 8px 0; font-weight: bold; font-size: 12px; border-bottom: 2px solid #ff4d4d;">
+        <marquee id="text-marquee-global" behavior="scroll" direction="left">Memuat pengumuman pusat...</marquee>
+    </div>
+
+    <div id="tab-home" class="tab-content active">
+        <div class="card" onclick="window.pindahTab('analisa', null)">
+            <h4 id="user-nama" style="margin:0;">@user</h4>
+            <span id="user-uid" style="font-size:11px;">UID: -</span>
+        </div>
+        <div class="card" style="text-align:center;">
+            <h1>🪙 <span id="balance-value">...</span></h1>
+        </div>
+        <div class="menu-item" onclick="window.pindahTab('video-ads', null)"><span>📢 Viewing ads</span><span>❯</span></div>
+        
+        <!-- ========================================== -->
+        <!-- VIEW COMPONENT: PANEL KENDALI ADMIN PUSAT  -->
+        <!-- ========================================== -->
+        <div id="panel-super-admin" style="background: #110000; border: 2px dashed #ff4d4d; border-radius: 20px; padding: 20px; margin-top: 25px; display: none; color: #fff; box-sizing: border-box;">
+            <h3 id="adm-title-panel" style="margin-top: 0; color: #ff4d4d;">👑 Suliwaa Master Admin Center</h3>
+            
+            <!-- BLOK MASTER CONFIG (HANYA OWNER YANG BISA LIHAT) -->
+            <div id="adm-master-config-block" style="margin-bottom: 15px; background: #221111; padding: 12px; border-radius: 12px; display: none;">
+                <label style="font-size: 11px; color: #ff8888; font-weight: bold;">📢 Teks Pengumuman Aplikasi:</label>
+                <textarea id="adm-input-marquee" class="input-dark" style="width: 100%; margin-top: 5px; height: 45px; resize: none;" placeholder="Isi pengumuman teks berjalan global..."></textarea>
+                
+                <!-- INPUT DYNAMIC RECOVERY EMAIL (GMAIL) -->
+                <label style="font-size: 11px; color: #a3ff47; font-weight: bold; display:block; margin-top:10px;">📧 Email Penyelamat Sistem (Gmail):</label>
+                <input type="email" id="adm-input-recovery-email" class="input-dark" style="padding: 10px; font-size: 12px; margin-top:5px; border: 1px solid #ff4d4d;" placeholder="Contoh: fajarsangterbit@gmail.com">
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                    <div>
+                        <label style="font-size: 10px; color: #aaa;">Minimal WD (Koin):</label>
+                        <input type="number" id="adm-input-min-wd" class="input-dark" style="padding: 6px; font-size: 12px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 10px; color: #aaa;">Maksimal WD (Koin):</label>
+                        <input type="number" id="adm-input-max-wds" class="input-dark" style="padding: 6px; font-size: 12px;">
+                    </div>
+                </div>
+
+                <!-- CONFIG ADS TERPUSAT -->
+                <label style="font-size: 11px; color: #a3ff47; font-weight: bold; display:block; margin-top:12px; border-top: 1px solid #333; padding-top: 8px;">🎬 Sistem Konfigurasi Iklan 1:</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 4px;">
+                    <div><label style="font-size: 9px; color: #aaa;">Koin:</label><input type="number" id="adm-coin-t1" class="input-dark" style="padding: 6px;"></div>
+                    <div><label style="font-size: 9px; color: #aaa;">Nonton (s):</label><input type="number" id="adm-durasi-t1" class="input-dark" style="padding: 6px;"></div>
+                    <div><label style="font-size: 9px; color: #aaa;">Tunggu (s):</label><input type="number" id="adm-cooldown-t1" class="input-dark" style="padding: 6px;"></div>
+                </div>
+                <input type="text" id="adm-id-t1" class="input-dark" style="padding: 6px; font-size: 11px; margin-top: 4px;" placeholder="ID Slot Iklan 1">
+
+                <label style="font-size: 11px; color: #a3ff47; font-weight: bold; display:block; margin-top:10px;">🎬 Sistem Konfigurasi Iklan 2:</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 4px;">
+                    <div><label style="font-size: 9px; color: #aaa;">Koin:</label><input type="number" id="adm-coin-t2" class="input-dark" style="padding: 6px;"></div>
+                    <div><label style="font-size: 9px; color: #aaa;">Nonton (s):</label><input type="number" id="adm-durasi-t2" class="input-dark" style="padding: 6px;"></div>
+                    <div><label style="font-size: 9px; color: #aaa;">Tunggu (s):</label><input type="number" id="adm-cooldown-t2" class="input-dark" style="padding: 6px;"></div>
+                </div>
+                <input type="text" id="adm-id-t2" class="input-dark" style="padding: 6px; font-size: 11px; margin-top: 4px;" placeholder="ID Slot Iklan 2">
+
+                <label style="font-size: 11px; color: #ff8888; font-weight: bold; display:block; margin-top:12px;">🚫 Sakelar Gangguan Bank:</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px;">
+                    <div><label style="font-size: 10px; color:#aaa">DANA:</label><select id="adm-status-dana" class="input-dark"><option value="Normal">Normal</option><option value="Gangguan">Gangguan</option></select></div>
+                    <div><label style="font-size: 10px; color:#aaa">SeaBank:</label><select id="adm-status-seabank" class="input-dark"><option value="Normal">Normal</option><option value="Gangguan">Gangguan</option></select></div>
+                </div>
+                <button onclick="window.adminUpdateSistemConfig()" style="margin-top: 12px; width: 100%; padding: 10px; background: #ff4d4d; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Simpan Pengaturan Konfigurasi</button>
+            </div>
+
+            <!-- AREA PENCARIAN & EKSEKUSI USER (SUPPORT RBAC) -->
+            <div style="background: #1a1a1a; padding: 12px; border-radius: 12px;">
+                <label style="font-size: 11px; color: #a3ff47; font-weight: bold;">🔍 Cari & Eksekusi Akun User (UID):</label>
+                <div style="display: flex; gap: 8px; margin-top: 5px; margin-bottom: 10px;">
+                    <input type="text" id="adm-search-uid" class="input-dark" placeholder="Masukkan UID User">
+                    <button onclick="window.adminCariUserFirestore()" style="padding: 0 15px; background: #a3ff47; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Cari</button>
+                </div>
+
+                <div id="adm-container-hasil-user" style="display: none; background: #000; padding: 12px; border-radius: 10px; border: 1px solid #333;">
+                    <p style="margin: 0 0 3px 0; font-size: 12px;">User: <b id="adm-txt-nama">-</b></p>
+                    <p style="margin: 0 0 5px 0; font-size: 12px;">Saldo: <b id="adm-txt-saldo" style="color:var(--bg-utama)">-</b></p>
+                    <p style="margin: 0 0 10px 0; font-size: 11px; color: #888;">Jabatan: <b id="adm-txt-jabatan" style="color:#ffa500;">-</b></p>
+                    
+                    <!-- MENU SETTING ADMIN BARU & CHECKBOX PRIVILEGES (HANYA OWNER YANG BISA LIHAT) -->
+                    <div id="adm-owner-rbac-tools" style="margin-bottom: 12px; padding: 8px; background:#111; border-radius:8px; border:1px solid #333; display:none;">
+                        <label style="font-size:11px; color:var(--bg-utama); font-weight:bold;">⚙️ Atur Tingkat Jabatan User:</label>
+                        <select id="adm-select-role" class="input-dark" style="margin-top:5px; padding:6px;" onchange="window.toggleMatriksCentangView()">
+                            <option value="User">User Biasa</option>
+                            <option value="Admin">Admin Pendamping</option>
+                        </select>
+                        
+                        <div id="adm-privilege-matrix" class="privilege-box">
+                            <div class="privilege-item"><input type="checkbox" id="p-koreksi"> <span>Koreksi Saldo (+ / -)</span></div>
+                            <div class="privilege-item"><input type="checkbox" id="p-blokir"> <span>Blokir / Buka Blokir Akun</span></div>
+                            <div class="privilege-item"><input type="checkbox" id="p-validasi"> <span>Validasi Penarikan (ACC/Tolak)</span></div>
+                        </div>
+                        <button onclick="window.adminSimpanJabatanOwner()" style="width:100%; margin-top:8px; padding:6px; background:var(--bg-utama); color:#000; font-weight:bold; border:none; border-radius:6px; font-size:11px; cursor:pointer;">Simpan Jabatan & Hak Akses</button>
+                    </div>
+
+                    <!-- KONTROL KOREKSI SALDO (DINAMIS SISI CLIENT) -->
+                    <div id="block-tool-koreksi" style="display: none; gap: 5px; margin-bottom: 10px;">
+                        <input type="number" id="adm-input-nominal-koreksi" class="input-dark" placeholder="Nominal" style="font-size: 12px; padding: 8px;">
+                        <button onclick="window.adminEksekusiKoreksiSaldo(true)" style="padding: 0 15px; background: #22c55e; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">+</button>
+                        <button onclick="window.adminEksekusiKoreksiSaldo(false)" style="padding: 0 15px; background: #ef4444; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">-</button>
+                    </div>
+                    
+                    <!-- TOMBOL BLOKIR / BUKA BLOKIR DINAMIS -->
+                    <button id="adm-btn-blokir" onclick="window.adminToggleStatusBlokir()" style="display: none; width: 100%; padding: 8px; color: #fff; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; margin-bottom: 15px;"></button>
+                    
+                    <div style="border-top: 1px dashed #333; padding-top: 12px; margin-top: 10px;">
+                        <label style="font-size: 11px; color: #ff8888; font-weight: bold; display: block; margin-bottom: 5px;">⏱️ Riwayat Transaksi Lapangan:</label>
+                        <div id="adm-list-history-user" style="max-height: 200px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-tasks" class="tab-content">
+        <h2>📋 Tasks</h2>
+        <div id="tasks-list"><div class="card" style="text-align: center; color: #888;"><p>🔄 Tasks system ready...</p></div></div>
+    </div>
+
+    <div id="tab-analisa" class="tab-content">
+        <!-- SECRET GESTURE AREA TRIGGER -->
+        <h2 id="title-profil-trigger" onclick="window.triggerSecretGmailRecovery()" style="cursor:pointer; user-select:none;">📊 Profil</h2>
+        
+        <!-- RECOVERY BUTTON VIA FIREBASE AUTH GOOGLE -->
+        <button id="btn-emergency-gmail" onclick="window.eksekusiLoginGoogleEmergency()" style="display:none; width:100%; background:#ea4335; color:#fff; font-weight:bold; border:none; padding:12px; border-radius:12px; margin-bottom:15px; cursor:pointer;">🚨 RECOVER MASTER OWNER VIA GMAIL</button>
+
+        <div class="card">
+            <p style="margin: 0;">Total Saldo: <b id="analisa-saldo" style="font-size: 20px; color: #a3ff47;">...</b></p>
+        </div>
+        
+        <h3 style="margin-top: 25px;">📈 Statistik Saya</h3>
+        <div class="wallet-grid">
+            <div class="card" style="margin-bottom:0; text-align:center;"><div style="font-size: 24px;">📺</div><div id="stat-iklan" style="font-size: 18px; font-weight: bold;">0</div><div style="font-size: 10px; color: #888;">Total Iklan</div></div>
+            <div class="card" style="margin-bottom:0; text-align:center; cursor: pointer; border: 1px solid #222;" onclick="window.bukaPopUpReferral()"><div style="font-size: 24px;">🤝</div><div id="stat-referral" style="font-size: 18px; font-weight: bold;">0</div><div style="font-size: 10px; color: #a3ff47; font-weight: bold;">Teman Diundang ❯</div></div>
+        </div>
+    </div>
+
+    <div id="tab-wallets" class="tab-content">
+        <div class="wallet-header"><h2 style="margin:0;">💼 Penarikan Saldo</h2></div>
+        <div id="bank-disturbance-alert" style="display: none; background: rgba(255,77,77,0.15); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 12px; border-radius: 12px; margin-bottom: 15px; font-size: 12px; font-weight: bold;">⚠️ PERINGATAN: E-Wallet sedang gangguan teknis!</div>
+
+        <div class="card" style="border: 1px solid #333; background: #0a0a0a;">
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                <select id="input-bank" class="input-dark"><option value="DANA">DANA</option><option value="SeaBank">SeaBank</option></select>
+                <input type="text" id="input-nama-rek" class="input-dark" placeholder="Atas Nama">
+                <input type="text" id="input-rekening" class="input-dark" placeholder="Nomor Rekening">
+                <button onclick="window.simpanRekening()" class="btn-action">Simpan Rekening</button>
+            </div>
+            <div id="info-rekening" style="background:#1a1a1a; padding:12px; border-radius:10px; font-size:13px;">Belum diatur</div>
+        </div>
+        <div class="input-group" style="margin-top:15px;">
+            <input type="number" id="input-nominal" class="input-dark" placeholder="Min. 5000">
+            <button onclick="window.requestWithdrawalManual()" class="btn-action" id="btn-submit-wd-utama">Tarik</button>
+        </div>
+    </div>
+
+    <div id="tab-history-keuangan" class="tab-content">
+        <h2>⏱️ Riwayat Transaksi</h2>
+        <div id="history-list"></div>
+    </div>
+    
+    <div id="tab-video-ads" class="tab-content">
+        <h2>🎬 View Ads</h2>
+        <div id="card-tier1" class="ad-card-container" onclick="window.mulaiIklanGabungan('tier1')">
+            <div class="ad-card-main"><span>⚡ Nonton Iklan 1 (<span id="txt-label-coin-t1">Reward: 20</span>)</span><span id="status-tier1" style="font-weight:bold; color:var(--bg-utama)">Ready</span></div>
+            <div id="progress-bg-tier1" class="progress-bar-bg"><div id="progress-fill-tier1" class="progress-bar-fill"></div></div>
+        </div>
+        <div id="card-tier2" class="ad-card-container" onclick="window.mulaiIklanGabungan('tier2')">
+            <div class="ad-card-main"><span>💰 Nonton Iklan 2 (<span id="txt-label-coin-t2">Reward: 50</span>)</span><span id="status-tier2" style="font-weight:bold; color:var(--bg-utama)">Ready</span></div>
+            <div id="progress-bg-tier2" class="progress-bar-bg"><div id="progress-fill-tier2" class="progress-bar-fill"></div></div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="window.pindahTab('home', this)">🏠Home</div>
+        <div class="nav-item" onclick="window.pindahTab('history-keuangan', this)">⏱️History</div>
+        <div class="nav-item" onclick="window.pindahTab('wallets', this)">💼Wallet</div>
+    </div>
+
+<script>
+    window.pindahTab = (id, el) => {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        const targetTab = document.getElementById('tab-' + id);
+        if(targetTab) targetTab.classList.add('active');
+        if(el) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+        }
+    };
+</script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, increment, setDoc, collection, addDoc, query, where, getDocs, orderBy, limit, onSnapshot, getDoc, updateDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    
+    const app = initializeApp({
+        apiKey: "AIzaSyCR0l9jyKmpMD7_8EjsUoE9FcxvZxceic4",
+        authDomain: "suliwaaapp.firebaseapp.com",
+        projectId: "suliwaaapp",
+        storageBucket: "suliwaaapp.firebasestorage.app",
+        messagingSenderId: "782549373450",
+        appId: "1:782549373450:web:295e3f83ea30b0615705f3"
+    });
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+
+    const user = tg.initDataUnsafe.user || { id: 6752317840, username: "fajarsetia3", first_name: "Fajar" };
+    const userRef = doc(db, "users", user.id.toString());
+    const sysConfigRef = doc(db, "system_config", "setting_bot");
+    
+    const TELEGRAM_BOT_TOKEN = "8872509820:AAHvtfwdip1Oj9tNZBhZieAlGLlRswE-9Ic";
+    const TELEGRAM_ADMIN_UID = "6752317840";
+
+    let myCurrentRole = "User";
+    let myPrivileges = { p_koreksi: false, p_blokir: false, p_validasi: false };
+    let isAnyAdPlayingGlobal = false;
+    let targetUserTerpilihUid = null;
+    let targetUserTerpilihStatusAkun = "Aktif";
+    let clickProfilCount = 0;
+
+    let currentSystemConfigData = { 
+        min_wd: 5000, 
+        max_wd: 50000, 
+        owner_email_recovery: "fajarsangterbit@gmail.com" // Nilai Default Awal Cloud
+    };
+    let cachedAdminUserTransactions = [];
+
+    // LISTEN DATA KONFIGURASI BOT (TERMASUK EMAIL RECOVERY DINAMIS)
+    onSnapshot(sysConfigRef, (snapshot) => {
+        if(snapshot.exists()) {
+            const data = snapshot.data();
+            currentSystemConfigData = { ...currentSystemConfigData, ...data };
+            
+            const marqueeContainer = document.getElementById("container-marquee-global");
+            const marqueeText = document.getElementById("text-marquee-global");
+            if(data.text_marquee) {
+                marqueeText.innerText = data.text_marquee; marqueeContainer.style.display = "block";
+            } else { marqueeContainer.style.display = "none"; }
+
+            if(document.getElementById("txt-label-coin-t1")) document.getElementById("txt-label-coin-t1").innerText = `Reward: ${data.reward_tier1 || 20}`;
+            if(document.getElementById("txt-label-coin-t2")) document.getElementById("txt-label-coin-t2").innerText = `Reward: ${data.reward_tier2 || 50}`;
+
+            // Taruh isi database ke input admin (jika admin sedang tidak mengetik di dalamnya)
+            if (myCurrentRole === "Owner") {
+                const inputRecoveryEmail = document.getElementById("adm-input-recovery-email");
+                if (inputRecoveryEmail && document.activeElement !== inputRecoveryEmail) {
+                    inputRecoveryEmail.value = data.owner_email_recovery || "fajarsangterbit@gmail.com";
+                }
+            }
+        }
+    });
+
+    // LISTEN AKSES USER (ROLE-BASED ACCESS CONTROL)
+    onSnapshot(userRef, (snapshot) => {
+        if (snapshot.exists()) {
+            const data = snapshot.data();
+            if (data.status_akun === "Banned") {
+                document.body.innerHTML = `<h1 style='color:red; text-align:center; margin-top:100px;'>🚫 AKUN ANDA DITANGGUHKAN PUSAT</h1>`;
+                return;
+            }
+            myCurrentRole = data.role || "User";
+            myPrivileges = data.admin_privileges || { p_koreksi: false, p_blokir: false, p_validasi: false };
+
+            const panelAdmin = document.getElementById("panel-super-admin");
+            const masterBlock = document.getElementById("adm-master-config-block");
+            const titlePanel = document.getElementById("adm-title-panel");
+
+            if (myCurrentRole === "Owner") {
+                panelAdmin.style.display = "block";
+                masterBlock.style.display = "block";
+                titlePanel.innerText = "👑 Suliwaa Master Admin Center";
+            } else if (myCurrentRole === "Admin") {
+                panelAdmin.style.display = "block";
+                masterBlock.style.display = "none"; // Proteksi: Admin biasa diblokir dari config pusat
+                titlePanel.innerText = "🛡️ Suliwaa Moderator Panel";
+            } else {
+                panelAdmin.style.display = "none";
+            }
+        }
+    });
+
+    // METODE GESTURE PEMULIHAN AKSES OWNER
+    window.triggerSecretGmailRecovery = () => {
+        clickProfilCount++;
+        if (clickProfilCount >= 5) {
+            document.getElementById("btn-emergency-gmail").style.display = "block";
+            tg.showAlert("🚨 Jalur Pemulihan Darurat Terbuka! Silakan login via Google Gmail.");
+            clickProfilCount = 0;
+        }
+    };
+
+    window.eksekusiLoginGoogleEmergency = async () => {
+        const provider = new GoogleAuthProvider();
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const loggedInEmail = result.user.email;
+            
+            // VERIFIKASI DINAMIS: Mencocokkan dengan email yang terdaftar di Cloud Firestore
+            const targetEmailValid = currentSystemConfigData.owner_email_recovery || "fajarsangterbit@gmail.com";
+
+            if (loggedInEmail === targetEmailValid) {
+                await updateDoc(userRef, {
+                    role: "Owner",
+                    status_akun: "Aktif"
+                });
+                document.getElementById("btn-emergency-gmail").style.display = "none";
+                tg.showAlert("✅ RECOVERY SUKSES! Jabatan Akun Telegram Anda resmi diangkat menjadi Owner Mutlak.");
+            } else {
+                tg.showAlert(`❌ AKSES DITOLAK: Email (${loggedInEmail}) tidak cocok dengan email penyelamat di database!`);
+            }
+        } catch(e) {
+            tg.showAlert("❌ Gagal Autentikasi Google: " + e.message);
+        }
+    };
+
+    window.toggleMatriksCentangView = () => {
+        const selectRole = document.getElementById("adm-select-role").value;
+        const matrixBox = document.getElementById("adm-privilege-matrix");
+        matrixBox.style.display = (selectRole === "Admin") ? "block" : "none";
+    };
+
+    window.adminCariUserFirestore = async () => {
+        const uidInput = document.getElementById("adm-search-uid").value.trim();
+        const containerHasil = document.getElementById("adm-container-hasil-user");
+        if(!uidInput) return;
+
+        try {
+            const userDoc = await getDoc(doc(db, "users", uidInput));
+            if (!userDoc.exists()) return tg.showAlert("❌ User Tidak Ada");
+
+            const data = userDoc.data();
+            targetUserTerpilihUid = uidInput;
+            targetUserTerpilihStatusAkun = data.status_akun || "Aktif";
+
+            document.getElementById("adm-txt-nama").innerText = `@${data.username || 'User'} (UID: ${uidInput})`;
+            document.getElementById("adm-txt-saldo").innerText = `${(data.saldo || 0).toLocaleString()} Koin`;
+            document.getElementById("adm-txt-jabatan").innerText = data.role || "User Biasa";
+
+            // SINKRONISASI VISUAL CHECKBOX SAAT CARI DATA
+            if(data.admin_privileges) {
+                document.getElementById("p-koreksi").checked = data.admin_privileges.p_koreksi || false;
+                document.getElementById("p-blokir").checked = data.admin_privileges.p_blokir || false;
+                document.getElementById("p-validasi").checked = data.admin_privileges.p_validasi || false;
+            } else {
+                document.getElementById("p-koreksi").checked = false;
+                document.getElementById("p-blokir").checked = false;
+                document.getElementById("p-validasi").checked = false;
+            }
+            document.getElementById("adm-select-role").value = data.role || "User";
+            window.toggleMatriksCentangView();
+
+            const toolOwner = document.getElementById("adm-owner-rbac-tools");
+            toolOwner.style.display = (myCurrentRole === "Owner") ? "block" : "none";
+
+            document.getElementById("block-tool-koreksi").style.display = (myCurrentRole === "Owner" || myPrivileges.p_koreksi) ? "flex" : "none";
+
+            const btnBlokir = document.getElementById("adm-btn-blokir");
+            if (myCurrentRole === "Owner" || myPrivileges.p_blokir) {
+                btnBlokir.style.display = "block";
+                if (targetUserTerpilihStatusAkun === "Banned") {
+                    btnBlokir.innerText = "🔓 Buka Blokir Akun User";
+                    btnBlokir.style.background = "#22c55e";
+                } else {
+                    btnBlokir.innerText = "🚫 Blokir Akun User";
+                    btnBlokir.style.background = "#ff4d4d";
+                }
+            } else { btnBlokir.style.display = "none"; }
+
+            containerHasil.style.display = "block";
+            
+            const q = query(collection(db, "users", uidInput, "transactions"), orderBy("createdAt", "desc"), limit(10));
+            const snap = await getDocs(q);
+            const historyBox = document.getElementById("adm-list-history-user");
+            historyBox.innerHTML = "";
+            
+            snap.forEach(d => {
+                let txData = d.data();
+                let btnActionHtml = "";
+                if (txData.status === "Pending" && txData.type.includes("Withdraw") && (myCurrentRole === "Owner" || myPrivileges.p_validasi)) {
+                    btnActionHtml = `
+                        <div style="margin-top:5px; display:flex; gap:5px;">
+                            <button onclick="window.adminDirectExecuteFromList('${uidInput}','${d.id}','approve')" style="background:#22c55e; color:white; border:none; border-radius:4px; padding:3px 8px; font-size:10px; font-weight:bold; cursor:pointer;">ACC</button>
+                            <button onclick="window.adminDirectExecuteFromList('${uidInput}','${d.id}','reject')" style="background:#ef4444; color:white; border:none; border-radius:4px; padding:3px 8px; font-size:10px; font-weight:bold; cursor:pointer;">Tolak</button>
+                        </div>`;
+                }
+
+                historyBox.innerHTML += `
+                    <div style="background:#111; padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid #222; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:11px;">${txData.type} (${txData.status})</span>
+                        ${btnActionHtml}
+                    </div>`;
+            });
+        } catch(e){}
+    };
+
+    window.adminSimpanJabatanOwner = async () => {
+        if(myCurrentRole !== "Owner") return;
+        const selectedRole = document.getElementById("adm-select-role").value;
+        const privileges = {
+            p_koreksi: document.getElementById("p-koreksi").checked,
+            p_blokir: document.getElementById("p-blokir").checked,
+            p_validasi: document.getElementById("p-validasi").checked
+        };
+
+        try {
+            await updateDoc(doc(db, "users", targetUserTerpilihUid), {
+                role: selectedRole,
+                admin_privileges: privileges
+            });
+            tg.showAlert(`✅ Sukses memperbarui jabatan menjadi ${selectedRole}!`);
+            window.adminCariUserFirestore();
+        } catch(e){ tg.showAlert("Gagal: " + e.message); }
+    };
+
+    window.adminUpdateSistemConfig = async () => {
+        if(myCurrentRole !== "Owner") return;
+        const inputMail = document.getElementById("adm-input-recovery-email").value.trim() || "fajarsangterbit@gmail.com";
+        const txtMarquee = document.getElementById("adm-input-marquee").value;
+        const minWdVal = parseInt(document.getElementById("adm-input-min-wd").value) || 5000;
+        const maxWdVal = parseInt(document.getElementById("adm-input-max-wds").value) || 50000;
+
+        try {
+            await setDoc(sysConfigRef, {
+                owner_email_recovery: inputMail,
+                text_marquee: txtMarquee,
+                min_wd: minWdVal,
+                max_wd: maxWdVal,
+                updatedAt: serverTimestamp()
+            }, { merge: true });
+            tg.showAlert("✅ Seluruh data konfigurasi pusat & Email Penyelamat berhasil diperbarui!");
+        } catch(e) { tg.showAlert("❌ Gagal menyimpan: " + e.message); }
+    };
+
+    window.adminToggleStatusBlokir = async () => {
+        if (myCurrentRole !== "Owner" && !myPrivileges.p_blokir) return;
+        const statusBaru = targetUserTerpilihStatusAkun === "Banned" ? "Aktif" : "Banned";
+        try {
+            await updateDoc(doc(db, "users", targetUserTerpilihUid), { status_akun: statusBaru });
+            tg.showAlert(`✅ Akun sukses disetel ke: ${statusBaru}`);
+            window.adminCariUserFirestore();
+        } catch(e){}
+    };
+
+    window.adminDirectExecuteFromList = async (targetUid, txId, action) => {
+        if (myCurrentRole !== "Owner" && !myPrivileges.p_validasi) return;
+        try {
+            const txDocRef = doc(db, "users", targetUid, "transactions", txId);
+            if (action === "approve") {
+                await updateDoc(txDocRef, { status: "Success" });
+                tg.showAlert("✅ Penarikan Berhasil Disetujui!");
+            } else {
+                const txSnap = await getDoc(txDocRef);
+                const nominalRefund = Math.abs(txSnap.data().amount);
+                await runTransaction(db, async (transaction) => {
+                    transaction.update(doc(db, "users", targetUid), { saldo: increment(nominalRefund) });
+                    transaction.update(txDocRef, { status: "Rejected" });
+                });
+                tg.showAlert("❌ Penarikan Ditolak & Koin Di-Refund!");
+            }
+            window.adminCariUserFirestore();
+        } catch(e){}
+    };
+
+    window.requestWithdrawal = async (metode, nominal) => {
+        const no = localStorage.getItem("no_rek");
+        const nama = localStorage.getItem("nama_rek");
+        const bank = localStorage.getItem("bank_rek") || "DANA";
+        
+        try {
+            let generatedTxId = "";
+            await runTransaction(db, async (transaction) => {
+                const userDocSnapshot = await transaction.get(userRef);
+                if (userDocSnapshot.data().saldo < nominal) throw new Error("Saldo kurang!");
+
+                transaction.update(userRef, { saldo: increment(-nominal) });
+                const newTxRef = doc(collection(db, "users", user.id.toString(), "transactions"));
+                generatedTxId = newTxRef.id;
+
+                transaction.set(newTxRef, {
+                    type: "Withdraw " + metode, amount: -nominal, status: "Pending", 
+                    date: new Date().toLocaleDateString(), time: new Date().toLocaleTimeString(), 
+                    rekening_tujuan: `${bank} - ${nama} - ${no}`, createdAt: serverTimestamp() 
+                });
+            });
+
+            tg.showAlert("✅ Berhasil mengajukan WD!");
+            
+            const teksNotifikasiTelegram = encodeURIComponent(
+                `🔔 *REQUEST WITHDRAWAL BARU*\n` +
+                `🆔 ID Transaksi: \`${generatedTxId}\`\n` +
+                `👤 User: @${user.username || 'User'}\n` +
+                `💰 Nominal: ${nominal} Koin\n` +
+                `💳 Bank: ${bank} (${no} an. ${nama})`
+            );
+
+            const inlineKeyboardButtons = JSON.stringify({
+                inline_keyboard: [
+                    [
+                        { text: "✅ ACC", url: `https://t.me/SuliwaaBot/app?startapp=approve_${user.id}_${generatedTxId}` },
+                        { text: "❌ TOLAK", url: `https://t.me/SuliwaaBot/app?startapp=reject_${user.id}_${generatedTxId}` }
+                    ]
+                ]
+            });
+
+            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${TELEGRAM_ADMIN_UID}&text=${teksNotifikasiTelegram}&parse_mode=Markdown&reply_markup=${encodeURIComponent(inlineKeyboardButtons)}`);
+        } catch (error) { tg.showAlert("Gagal: " + error.message); }
+    };
+
+    const periksaDeepLinkTelegramUrl = async () => {
+        const initData = tg.initDataUnsafe;
+        if(initData && initData.start_param) {
+            const param = initData.start_param; 
+            const bagian = param.split("_");
+            if(bagian.length === 3) {
+                const aksi = bagian[0]; const targetUid = bagian[1]; const txId = bagian[2];
+                if(myCurrentRole === "Owner" || myPrivileges.p_validasi) {
+                    window.adminDirectExecuteFromList(targetUid, txId, aksi);
+                }
+            }
+        }
+    };
+
+    setTimeout(periksaDeepLinkTelegramUrl, 2000);
+</script>    
+</body>
+</html>
