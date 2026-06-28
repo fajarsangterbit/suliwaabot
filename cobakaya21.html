@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suliwaa Bot - Full Version</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* Indikator Koneksi */
+        #network-status { position: fixed; top: 0; left: 0; width: 100%; padding: 10px; text-align: center; font-size: 13px; font-weight: bold; color: #ffffff; background: #ff4d4d; z-index: 10000; transform: translateY(-100%); transition: transform 0.3s ease-in-out; box-sizing: border-box; }
+        #network-status.show-offline { transform: translateY(0); }
+        #network-status.show-online { background: #a3ff47; color: #000000; transform: translateY(0); }
+        
+        /* Tambahan Gaya untuk History & Wallet */
+        .trx-item { display: flex; align-items: center; background: #111; padding: 15px; border-radius: 15px; margin-bottom: 12px; border: 1px solid #222; cursor: pointer; transition: 0.2s; }
+        .trx-item:active { transform: scale(0.98); background: #1a1a1a; }
+        .trx-icon { width: 45px; height: 45px; border-radius: 12px; background: #222; display: flex; justify-content: center; align-items: center; font-size: 20px; margin-right: 15px; }
+        .trx-details { flex-grow: 1; }
+        .trx-title { font-weight: bold; font-size: 14px; margin: 0 0 4px 0; }
+        .trx-date { font-size: 11px; color: #888; margin: 0; }
+        .trx-amount { font-weight: bold; font-size: 16px; text-align: right; }
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; margin-top: 5px; }
+        .status-success { background: rgba(163, 255, 71, 0.15); color: #a3ff47; }
+        .status-pending { background: rgba(255, 165, 0, 0.15); color: #ffa500; }
+        
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .input-dark { flex-grow: 1; padding: 12px; border-radius: 12px; border: 1px solid #333; background: #111; color: #fff; outline: none; width: 100%; box-sizing: border-box;}
+        .input-dark:focus { border-color: var(--bg-utama); }
+        .btn-action { background: var(--bg-utama); color: #000; font-weight: bold; border: none; border-radius: 12px; padding: 12px 20px; cursor: pointer; }
+        
+        :root { --bg-utama: #a3ff47; --bg-card: #000000; --teks-card: #ffffff; }
+        body { background-color: var(--bg-utama); font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 100px; }
+        .tab-content { display: none; padding: 15px; }
+        .tab-content.active { display: block; }
+        .card { background: var(--bg-card); color: var(--teks-card); border-radius: 20px; padding: 20px; margin-bottom: 15px; }
+        .menu-item { background: var(--bg-card); color: var(--teks-card); padding: 18px; border-radius: 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #000; display: flex; justify-content: space-around; padding: 15px 0; color: #a0a0a0; z-index: 999; }
+        .nav-item.active { color: var(--bg-utama); font-weight: bold; }
+        .wallet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn-wallet { background: #fff; color: #000; padding: 12px; border-radius: 12px; text-align: center; font-weight: bold; cursor: pointer; border: 2px solid #000; }
+        .btn-wallet:active { transform: scale(0.95); }
+        .wallet-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div id="network-status">⚠️ Koneksi Terputus!</div>
+
+    <div id="tab-home" class="tab-content active">
+        <div class="card" onclick="window.pindahTab('analisa', null)">
+            <h4 id="user-nama" style="margin:0;">@user</h4>
+            <span id="user-uid" style="font-size:11px;">UID: -</span>
+        </div>
+        <div class="card" style="text-align:center;">
+            <h1>🪙 <span id="balance-value">...</span></h1>
+        </div>
+        <div class="menu-item" onclick="window.pindahTab('video-ads', null)"><span>📢 Viewing ads</span><span>❯</span></div>
+    </div>
+
+    <div id="tab-tasks" class="tab-content">
+        <h2>📋 Tasks</h2>
+        <div id="tasks-list">
+            <div class="card" style="text-align: center; color: #888;">
+                <p>🔄 Tasks system ready...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-analisa" class="tab-content">
+        <h2>📊 Profil</h2>
+        <div class="card">
+            <p style="margin: 0;">Total Saldo: <b id="analisa-saldo" style="font-size: 20px; color: #a3ff47;">...</b></p>
+        </div>
+        
+        <h3 style="margin-top: 25px;">📈 Statistik Saya</h3>
+        <div class="wallet-grid">
+            <div class="card" style="margin-bottom:0; text-align:center;">
+                <div style="font-size: 24px;">📺</div>
+                <div id="stat-iklan" style="font-size: 18px; font-weight: bold;">0</div>
+                <div style="font-size: 10px; color: #888;">Total Iklan</div>
+            </div>
+            
+            <div class="card" style="margin-bottom:0; text-align:center; cursor: pointer; border: 1px solid #222;" onclick="window.bukaPopUpReferral()">
+                <div style="font-size: 24px;">🤝</div>
+                <div id="stat-referral" style="font-size: 18px; font-weight: bold;">0</div>
+                <div style="font-size: 10px; color: #a3ff47; font-weight: bold;">Teman Diundang ❯</div>
+            </div>
+            
+            <div class="card" style="margin-bottom:0; text-align:center;">
+                <div style="font-size: 24px;">📅</div>
+                <div id="stat-poin-hari-ini" style="font-size: 18px; font-weight: bold;">0</div>
+                <div style="font-size: 10px; color: #888;">Poin Hari Ini</div>
+            </div>
+            <div class="card" style="margin-bottom:0; text-align:center;">
+                <div style="font-size: 24px;">💰</div>
+                <div id="stat-total-penghasilan" style="font-size: 18px; font-weight: bold;">0</div>
+                <div style="font-size: 10px; color: #888;">Total Penghasilan</div>
+            </div>
+        </div>
+        
+        <h3 style="margin-top: 25px;">🤝 Undang Teman</h3>
+        <div class="card">
+            <p style="font-size: 13px; color: #a0a0a0; margin-top: 0;">Bagikan link ini ke teman. Jika mereka bergabung, Anda mendapat <b>+200 Koin</b>!</p>
+            <input type="text" id="link-referral" readonly style="width:100%; padding:12px; border-radius:10px; border:1px solid #a3ff47; background:#222; color:#fff; box-sizing:border-box;">
+            <button onclick="window.salinLink()" style="margin-top:10px; width:100%; padding:12px; border-radius:10px; border:none; font-weight:bold; cursor:pointer; background:#a3ff47; color:#000;">Salin Link Undangan</button>
+        </div>
+    </div>
+
+    <div id="tab-wallets" class="tab-content">
+        <div class="wallet-header"><h2 style="margin:0;">💼 Penarikan Saldo</h2></div>
+        <div class="card" style="border: 1px solid #333; background: #0a0a0a;">
+            <p style="margin-top:0; font-size:13px; color:#a0a0a0;">Atur Rekening/E-Wallet:</p>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                <select id="input-bank" class="input-dark">
+                    <option value="DANA">DANA</option>
+                    <option value="SeaBank">SeaBank</option>
+                    <option value="GOPAY">GOPAY</option>
+                    <option value="OVO">OVO</option>
+                </select>
+                <input type="text" id="input-nama-rek" class="input-dark" placeholder="Atas Nama">
+                <input type="text" id="input-rekening" class="input-dark" placeholder="Nomor Rekening (Angka saja)">
+                <button onclick="window.simpanRekening()" class="btn-action">Simpan Rekening</button>
+            </div>
+            <div id="info-rekening" style="background:#1a1a1a; padding:12px; border-radius:10px; font-size:13px;">Belum diatur</div>
+        </div>
+
+        <h4 style="margin-top: 25px; margin-bottom: 10px;">Input Nominal Manual</h4>
+        <div class="input-group">
+            <input type="number" id="input-nominal" class="input-dark" placeholder="Min. 5000">
+            <button onclick="window.requestWithdrawalManual()" class="btn-action" style="padding: 0 20px;">Tarik</button>
+        </div>
+    </div>
+
+    <div id="tab-history-keuangan" class="tab-content">
+        <div class="input-group">
+            <select id="filter-history" class="input-dark" onchange="window.filterRiwayat()">
+                <option value="Semua">Semua Transaksi</option>
+                <option value="Ads">Reward Ads</option>
+                <option value="Withdraw">Withdraw</option>
+                <option value="Referral">Referral</option>
+            </select>
+        </div>
+        <h2>⏱️ Riwayat Transaksi</h2>
+        <div id="history-list">
+            <div class="card" style="text-align: center; color: #888;"><p>Belum ada transaksi</p></div>
+        </div>
+    </div>
+    
+    <div id="tab-video-ads" class="tab-content">
+        <h2>🎬 View Ads</h2>
+        <div class="menu-item" onclick="window.mulaiIklan(50)">
+            <span>📺 Nonton Iklan (Reward: 50)</span>
+            <span id="status-iklan">Ready</span>
+        </div>
+    </div>
+
+    <div id="pop-up-referral" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; display: none; flex-direction: column; padding: 20px; box-sizing: border-box; color: #fff;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: var(--bg-utama);">🤝 Daftar Teman Diundang</h3>
+            <button onclick="window.tutupPopUpReferral()" style="background: #ff4d4d; color: #fff; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer;">Tutup</button>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <input type="text" id="search-referral" oninput="window.filterCariReferral()" placeholder="🔍 Cari username teman..." style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #333; background: #111; color: #fff; outline: none; box-sizing: border-box;">
+        </div>
+        <div id="referral-list-container" style="flex-grow: 1; overflow-y: auto; padding-right: 5px;">
+            <div style="text-align: center; color: #888; margin-top: 40px;">Memuat data...</div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="window.pindahTab('home', this)">🏠Home</div>
+        <div class="nav-item" onclick="window.pindahTab('tasks', this)">📋Tasks</div>
+        <div class="nav-item" onclick="window.pindahTab('history-keuangan', this)">⏱️History</div>
+        <div class="nav-item" onclick="window.pindahTab('wallets', this)">💼Wallet</div>
+    </div>
+
+<script>
+    // Penyelarasan Sinkronus: Fungsi navigasi tab langsung aktif sejak awal
+    window.pindahTab = (id, el) => {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        const targetTab = document.getElementById('tab-' + id);
+        if(targetTab) targetTab.classList.add('active');
+        if(el) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+        }
+    };
+</script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, increment, setDoc, collection, addDoc, query, where, getDocs, orderBy, limit, onSnapshot, getDoc, updateDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    
+    const db = getFirestore(initializeApp({
+        apiKey: "AIzaSyCR0l9jyKmpMD7_8EjsUoE9FcxvZxceic4",
+        authDomain: "suliwaaapp.firebaseapp.com",
+        projectId: "suliwaaapp",
+        storageBucket: "suliwaaapp.firebasestorage.app",
+        messagingSenderId: "782549373450",
+        appId: "1:782549373450:web:295e3f83ea30b0615705f3"
+    }));
+
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand(); 
+
+    const user = tg.initDataUnsafe.user || { id: 12345, username: "TesterBrowser", first_name: "Tester" };
+    const userRef = doc(db, "users", user.id.toString());
+    const pengundangID = tg.initDataUnsafe.start_param; 
+    let cachedSnapshots = null; 
+    let dataReferralCache = []; // Cache lokal data list teman
+
+    // Banner Jaringan
+    const networkBanner = document.getElementById("network-status");
+    window.addEventListener("offline", () => {
+        networkBanner.innerText = "⚠️ Koneksi Terputus! Menunggu jaringan...";
+        networkBanner.className = "show-offline";
+    });
+    window.addEventListener("online", () => {
+        networkBanner.innerText = "✅ Koneksi Kembali Stabil!";
+        networkBanner.className = "show-online";
+        setTimeout(() => { networkBanner.className = ""; }, 3000);
+    });
+
+    // ==========================================
+    // LOGIKA POP-UP DETAIL REFERRAL (SISTEM CARI & ANTISIPASI DATA KOSONG)
+    // ==========================================
+    window.bukaPopUpReferral = async () => {
+        const popUp = document.getElementById("pop-up-referral");
+        const container = document.getElementById("referral-list-container");
+        const searchInput = document.getElementById("search-referral");
+        
+        popUp.style.display = "flex";
+        container.innerHTML = `<div style="text-align: center; color: #888; margin-top: 40px;">🔄 Menghubungi server Firebase...</div>`;
+        searchInput.value = ""; 
+
+        try {
+            // Jalankan query pencarian sub-koleksi global berdasarkan kode pengundang
+            const q = query(collection(db, "users"), where("referred_by", "==", user.id.toString()));
+            const querySnapshot = await getDocs(q);
+            
+            dataReferralCache = []; 
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                dataReferralCache.push({
+                    username: data.username || "User Tanpa Nama",
+                    saldo: data.saldo || 0
+                });
+            });
+
+            window.renderListReferral(dataReferralCache);
+
+        } catch (error) {
+            container.innerHTML = `<div style="text-align: center; color: #ff4d4d; margin-top: 40px;">❌ Gagal memuat data: ${error.message}</div>`;
+        }
+    };
+
+    window.tutupPopUpReferral = () => {
+        document.getElementById("pop-up-referral").style.display = "none";
+    };
+
+    window.renderListReferral = (listData) => {
+        const container = document.getElementById("referral-list-container");
+        container.innerHTML = "";
+
+        // SYNERGY UPDATE: Indikator informasi interaktif khusus jika belum memiliki referral sama sekali
+        if (listData.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; background: #111; border: 1px dashed #333; border-radius: 15px; padding: 30px 20px; margin-top: 40px;">
+                    <div style="font-size: 40px; margin-bottom: 15px;">👋</div>
+                    <h4 style="margin: 0 0 8px 0; color: var(--bg-utama);">Belum Ada Referral</h4>
+                    <p style="margin: 0; font-size: 12px; color: #888; line-height: 1.5;">Anda belum memiliki teman yang terdaftar. Bagikan link undangan Anda di halaman profil untuk mulai mengumpulkan komisi bonus 200 Koin!</p>
+                </div>`;
+            return;
+        }
+
+        listData.forEach(item => {
+            container.innerHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #111; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #222;">
+                    <div>
+                        <p style="margin: 0; font-weight: bold; color: #fff;">🤝 @${item.username}</p>
+                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #888;">Status: Aktif</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="color: var(--bg-utama); font-weight: bold; font-size: 15px;">🪙 ${item.saldo.toLocaleString()}</span>
+                        <p style="margin: 3px 0 0 0; font-size: 10px; color: #666;">Sisa Saldo</p>
+                    </div>
+                </div>`;
+        });
+    };
+
+    window.filterCariReferral = () => {
+        const keyword = document.getElementById("search-referral").value.toLowerCase().trim();
+        const dataDisaring = dataReferralCache.filter(item => item.username.toLowerCase().includes(keyword));
+        window.renderListReferral(dataDisaring);
+    };
+
+    // ==========================================
+    // LOGIKA IKLAN PROTEKSI SISI SERVER
+    // ==========================================
+    let isAdPlaying = false; 
+    window.mulaiIklan = async (reward) => {
+        if(isAdPlaying) return; 
+        const btn = document.getElementById("status-iklan");
+        if(btn.innerText !== "Ready" && !btn.innerText.includes("Tunggu")) return;
+        
+        try {
+            isAdPlaying = true;
+            btn.innerText = "Mengecek...";
+            
+            const docSnap = await getDoc(userRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const waktuTerakhirKlik = data.last_ad_click ? data.last_ad_click.toMillis() : 0;
+                const waktuSekarang = Date.now();
+                const cooldown = 60 * 1000; 
+                
+                if (waktuSekarang - waktuTerakhirKlik < cooldown) {
+                    const sisaDetik = Math.ceil((cooldown - (waktuSekarang - waktuTerakhirKlik)) / 1000);
+                    tg.showAlert(`Sabar! Tunggu ${sisaDetik} detik lagi.`);
+                    window.mulaiHitungMundurLokal(sisaDetik); 
+                    isAdPlaying = false; 
+                    return; 
+                }
+            }
+
+            btn.innerText = "Watching...";
+            setTimeout(async () => {
+                try {
+                    await updateDoc(userRef, { 
+                        saldo: increment(reward),
+                        last_ad_click: serverTimestamp() 
+                    });
+                    
+                    await addDoc(collection(db, "users", user.id.toString(), "transactions"), { 
+                        type: "Reward Ads", amount: reward, status: "Success", 
+                        date: new Date().toLocaleDateString(), time: new Date().toLocaleTimeString(), createdAt: serverTimestamp() 
+                    });
+                    
+                    window.mulaiHitungMundurLokal(60); 
+                    tg.showAlert("Berhasil! Saldo bertambah " + reward);
+                } catch (err) {
+                    btn.innerText = "Ready";
+                    tg.showAlert("❌ Eror Gagal Tambah Saldo: " + err.message);
+                } finally {
+                    isAdPlaying = false; 
+                }
+            }, 5000);
+        } catch (error) {
+            btn.innerText = "Ready";
+            isAdPlaying = false;
+            tg.showAlert("❌ Eror Membuka Koleksi Iklan: " + error.message);
+        }
+    };
+
+    window.mulaiHitungMundurLokal = (sisaDetik) => {
+        const btn = document.getElementById("status-iklan");
+        let sisa = sisaDetik;
+        btn.innerText = `Tunggu ${sisa}s`;
+        const interval = setInterval(() => {
+            sisa--;
+            if (sisa <= 0) {
+                clearInterval(interval);
+                btn.innerText = "Ready"; 
+            } else {
+                btn.innerText = `Tunggu ${sisa}s`;
+            }
+        }, 1000);
+    };
+
+    // ==========================================
+    // LOGIKA WALLET TRANS-ATOMIK
+    // ==========================================
+    const renderRekening = () => {
+        const nama = localStorage.getItem("nama_rek");
+        const no = localStorage.getItem("no_rek");
+        const bank = localStorage.getItem("bank_rek") || "Rekening";
+        const info = document.getElementById("info-rekening");
+        
+        if (nama && no) {
+            info.innerHTML = `
+                <div style="margin-bottom: 5px;">Bank/Wallet: <b style="color:var(--bg-utama)">${bank}</b></div>
+                <div style="margin-bottom: 5px;">A.N: <b>${nama}</b></div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>No: <b>${no}</b></span> 
+                    <span id="hapus-rek-btn" style="color:#ff4d4d; cursor:pointer; font-weight:bold; background:rgba(255,77,77,0.1); padding:4px 8px; border-radius:6px;">Hapus</span>
+                </div>`;
+            setTimeout(() => { document.getElementById("hapus-rek-btn").onclick = window.hapusRekening; }, 50);
+        } else {
+            info.innerHTML = "<span>Rekening: Belum diatur</span>";
+        }
+    };
+
+    window.simpanRekening = () => {
+        const bank = document.getElementById("input-bank").value;
+        const nama = document.getElementById("input-nama-rek").value.trim();
+        const no = document.getElementById("input-rekening").value.trim();
+        
+        if(!nama || !no) return tg.showAlert("⚠️ Isi semua data rekening!");
+        if(!/^[0-9]+$/.test(no)) return tg.showAlert("❌ Nomor rekening HANYA boleh berisi angka!");
+
+        localStorage.setItem("nama_rek", nama);
+        localStorage.setItem("no_rek", no);
+        localStorage.setItem("bank_rek", bank);
+        renderRekening();
+        tg.showAlert("✅ Data " + bank + " disimpan!");
+    };
+
+    window.hapusRekening = () => {
+        localStorage.removeItem("nama_rek");
+        localStorage.removeItem("no_rek");
+        localStorage.removeItem("bank_rek");
+        document.getElementById("input-nama-rek").value = "";
+        document.getElementById("input-rekening").value = "";
+        renderRekening();
+        tg.showAlert("🗑️ Rekening dihapus!");
+    };
+
+    window.requestWithdrawalManual = async () => {
+        const inputElement = document.getElementById("input-nominal");
+        const nominal = parseInt(inputElement.value);
+        if (isNaN(nominal) || nominal < 5000) {
+            inputElement.value = ""; 
+            return tg.showAlert("⚠️ Minimal penarikan 5000 koin!");
+        }
+        await window.requestWithdrawal("Manual", nominal);
+    };
+
+    window.requestWithdrawal = async (metode, nominal) => {
+        const no = localStorage.getItem("no_rek");
+        const nama = localStorage.getItem("nama_rek");
+        const bank = localStorage.getItem("bank_rek") || "Manual";
+        if (!no || !nama) return tg.showAlert("⚠️ Simpan data rekening dulu!");
+        
+        try {
+            await runTransaction(db, async (transaction) => {
+                const userDocSnapshot = await transaction.get(userRef);
+                if (!userDocSnapshot.exists()) throw new Error("Profil akun belum terdaftar!");
+
+                const saldoUser = userDocSnapshot.data().saldo || 0;
+                if (saldoUser < nominal) throw new Error("Saldo tidak mencukupi!");
+
+                transaction.update(userRef, { saldo: increment(-nominal) });
+                const newTxRef = doc(collection(db, "users", user.id.toString(), "transactions"));
+                transaction.set(newTxRef, {
+                    type: "Withdraw " + metode, amount: -nominal, status: "Pending", 
+                    date: new Date().toLocaleDateString(), time: new Date().toLocaleTimeString(), 
+                    rekening_tujuan: `${bank} - ${nama} - ${no}`, createdAt: serverTimestamp() 
+                });
+            });
+            document.getElementById("input-nominal").value = "";
+            tg.showAlert("✅ Penarikan berhasil didaftarkan ke sistem!");
+        } catch (error) {
+            tg.showAlert("❌ Transaksi Ditolak: " + error.message);
+        }
+    };
+
+    // ==========================================
+    // LISTENER RIWAYAT TRANSAKSI REALTIME
+    // ==========================================
+    const inisialisasiTransaksiDanStatistik = () => {
+        const q = query(
+            collection(db, "users", user.id.toString(), "transactions"), 
+            orderBy("createdAt", "desc"),
+            limit(50)
+        );
+
+        onSnapshot(q, (snapshot) => {
+            cachedSnapshots = snapshot; 
+            window.filterRiwayat(); 
+        }, (error) => {
+            tg.showAlert("❌ Gagal Memuat Riwayat Transaksi:\n" + error.message);
+        });
+    };
+
+    window.filterRiwayat = () => {
+        if (!cachedSnapshots) return;
+        const list = document.getElementById("history-list");
+        list.innerHTML = "";
+        const filterValue = document.getElementById("filter-history").value;
+        let countIklan = 0; let countReferral = 0; let poinHariIni = 0; let totalPenghasilan = 0;
+        const tanggalHariIni = new Date().toLocaleDateString();
+
+        cachedSnapshots.forEach(d => {
+            const data = d.data();
+            const txId = d.id;
+            
+            if(data.type.includes("Ads")) countIklan++;
+            if(data.type.includes("Referral") || data.type.includes("Bonus")) countReferral++;
+            if(data.date === tanggalHariIni && data.amount > 0) poinHariIni += data.amount;
+            if(data.amount > 0) totalPenghasilan += data.amount;
+
+            if (filterValue !== "Semua" && !data.type.includes(filterValue)) return;
+
+            const isPlus = data.amount > 0;
+            let icon = data.type.includes("Ads") ? "📺" : (data.type.includes("Withdraw") ? "💸" : "🤝");
+            const badgeClass = data.status === "Success" ? "status-success" : "status-pending";
+
+            list.innerHTML += `
+                <div class="trx-item" onclick="navigator.clipboard.writeText('${txId}'); tg.showAlert('✅ ID Transaksi disalin')">
+                    <div class="trx-icon">${icon}</div>
+                    <div class="trx-details">
+                        <p class="trx-title">${data.type}</p>
+                        <p class="trx-date">📅 ${data.date} | ⏰ ${data.time}</p>
+                        <span class="status-badge ${badgeClass}">${data.status}</span>
+                    </div>
+                    <div class="trx-amount" style="color: ${isPlus ? '#a3ff47' : '#ff4d4d'};">${isPlus ? '+' : ''}${data.amount}</div>
+                </div>`;
+        });
+
+        document.getElementById("stat-iklan").innerText = countIklan;
+        document.getElementById("stat-referral").innerText = countReferral;
+        document.getElementById("stat-poin-hari-ini").innerText = poinHariIni;
+        document.getElementById("stat-total-penghasilan").innerText = totalPenghasilan;
+    };
+
+    window.salinLink = () => {
+        const linkInput = document.getElementById("link-referral");
+        linkInput.select();
+        navigator.clipboard.writeText(linkInput.value);
+        tg.showAlert("✅ Link undangan disalin!");
+    };
+
+    renderRekening();
+
+    // ==========================================
+    // INITIALIZATION USER PROFILE RUNTIME
+    // ==========================================
+    if(user && user.id) {
+        document.getElementById("link-referral").value = `https://t.me/SuliwaaBot?start=${user.id}`;
+        
+        getDoc(userRef).then(async (docSnap) => {
+            if (!docSnap.exists()) {
+                let dataBaru = { uid: user.id, username: user.username || user.first_name, saldo: 0, createdAt: serverTimestamp() };
+                if (pengundangID && pengundangID !== user.id.toString()) {
+                    dataBaru.referred_by = pengundangID; 
+                    try {
+                        await updateDoc(doc(db, "users", pengundangID), { saldo: increment(200) });
+                        await addDoc(collection(db, "users", pengundangID, "transactions"), { 
+                            type: "Bonus Referral", amount: 200, status: "Success", 
+                            date: new Date().toLocaleDateString(), time: new Date().toLocaleTimeString(), createdAt: serverTimestamp() 
+                        });
+                    } catch(e) { console.log("Referral track bypassed"); }
+                }
+                await setDoc(userRef, dataBaru);
+            }
+        }).catch(err => {
+            tg.showAlert("❌ Gagal Mendaftarkan Akun Baru:\n" + err.message);
+        });
+
+        onSnapshot(userRef, (s) => {
+            if(s.exists()){
+                const data = s.data();
+                document.getElementById("balance-value").innerText = data.saldo || 0;
+                document.getElementById("analisa-saldo").innerText = data.saldo || 0;
+                document.getElementById("user-nama").innerText = "@" + (data.username || "User");
+                document.getElementById("user-uid").innerText = "UID: " + (data.uid || user.id);
+            }
+        }, (error) => {
+            tg.showAlert("❌ Gagal Membaca Data Profil:\n" + error.message);
+        });
+        
+        inisialisasiTransaksiDanStatistik();
+    } else {
+        document.getElementById("user-nama").innerText = "@GuestMode";
+        document.getElementById("user-uid").innerText = "Browser Internal";
+    }
+</script>    
+</body>
+</html>
