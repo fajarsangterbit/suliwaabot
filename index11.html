@@ -1,0 +1,2150 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suliwaa Bot v20.6.7 - Multi-Language & Hidden Admin Core</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* ==========================================================================
+           GLOBAL VARIABLES & SYSTEM COLOR PALETTE
+           ========================================================================== */
+        :root {
+            --bg-utama: #a3ff47;
+            --bg-card: #000000;
+            --teks-card: #ffffff;
+            --danger: #ff4d4d;
+            --success: #22c55e;
+            --warning: #ffa500;
+            --dark-gray: #111111;
+            --border-gray: #222222;
+            --input-focus: #333333;
+        }
+        /* ==========================================================================
+           CORE STYLING & BASE LAYOUT RESET
+           ========================================================================== */
+        body {
+            background-color: var(--bg-utama);
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            padding-bottom: 110px;
+            color: #000000;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #network-status {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 12px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            color: #ffffff;
+            background: var(--danger);
+            z-index: 100000;
+            transform: translateY(-100%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        #network-status.show-offline { transform: translateY(0); }
+        #network-status.show-online { background: var(--bg-utama); color: #000000; transform: translateY(0); }
+        #container-marquee-global {
+            display: none;
+            background: #000000;
+            color: var(--bg-utama);
+            padding: 10px;
+            font-weight: bold;
+            font-size: 13px;
+            border-bottom: 2px solid var(--bg-utama);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .tab-content {
+            display: none;
+            padding: 18px;
+            animation: fadeInTab 0.3s ease-in-out forwards;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        .tab-content.active { display: block; }
+        
+        .wd-info-box { display: none !important; font-size: 13px; font-weight: bold; margin: 10px 15px; color: #000; }
+        .wd-val { color: var(--warning); }
+        
+        @keyframes fadeInTab {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card {
+            background: var(--bg-card);
+            color: var(--teks-card);
+            border-radius: 24px;
+            padding: 22px;
+            margin-bottom: 18px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            box-sizing: border-box;
+            position: relative;
+        }
+        .menu-item {
+            background: var(--bg-card);
+            color: var(--teks-card);
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .menu-item:active {
+            transform: scale(0.97);
+            background: #0a0a0a;
+        }
+        .input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .input-dark {
+            flex-grow: 1;
+            padding: 14px;
+            border-radius: 14px;
+            border: 1px solid #2c2c2c;
+            background: var(--dark-gray);
+            color: #ffffff;
+            outline: none;
+            font-size: 14px;
+            transition: all 0.25s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .input-dark:focus {
+            border-color: var(--bg-utama);
+            box-shadow: 0 0 0 3px rgba(163, 255, 71, 0.2);
+            background: var(--input-focus);
+        }
+        .btn-action {
+            background: var(--bg-utama);
+            color: #000000;
+            font-weight: bold;
+            border: none;
+            border-radius: 14px;
+            padding: 14px 24px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(163, 255, 71, 0.25);
+        }
+        .btn-action:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 6px rgba(163, 255, 71, 0.1);
+        }
+        .btn-action:disabled {
+            background: #555555;
+            color: #aaaaaa;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: scale(1);
+        }
+        .wallet-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .trx-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 10, 10, 0.95);
+            padding: 12px 16px;
+            border-radius: 16px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-gray);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #ffffff;
+        }
+        .trx-item:active { transform: scale(0.98); background: #161616; }
+        .trx-details { display: flex; flex-direction: column; gap: 4px; flex-grow: 1; text-align: left; }
+        .trx-title { font-weight: 600; font-size: 13px; margin: 0; color: #ffffff; line-height: 1.3; }
+        .trx-date { font-size: 10px; color: #888888; margin: 0; }
+        .trx-right-side { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; justify-content: center; min-width: 80px; text-align: right; }
+        .trx-status-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+        .trx-status-success { background: rgba(34, 197, 94, 0.14); color: var(--success); }
+        .trx-status-pending { background: rgba(255, 165, 0, 0.14); color: var(--warning); }
+        .trx-status-failed { background: rgba(255, 77, 77, 0.14); color: var(--danger); }
+        .trx-amount { font-weight: 700; font-size: 14px; margin: 0; }
+        .ad-card-container {
+            background: var(--bg-card);
+            color: var(--teks-card);
+            border-radius: 20px;
+            margin-bottom: 14px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            border: 1px solid var(--border-gray);
+            overflow: hidden;
+            position: relative;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .ad-card-container:active { transform: scale(0.98); }
+        .ad-card-main { display: flex; justify-content: space-between; align-items: center; width: 100%; z-index: 2; }
+        .progress-bar-bg { width: 100%; height: 6px; background: var(--border-gray); border-radius: 10px; margin-top: 14px; display: none; overflow: hidden; z-index: 2; }
+        .progress-bar-fill { height: 100%; width: 0%; background: var(--bg-utama); border-radius: 10px; transition: width 0s linear; }
+        .privilege-box { background: var(--dark-gray); padding: 14px; border-radius: 12px; margin-top: 10px; font-size: 13px; display: none; border: 1px solid var(--border-gray); }
+        .privilege-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; color: #ffffff; }
+        .privilege-item input { width: 18px; height: 18px; accent-color: var(--bg-utama); cursor: pointer; }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #000000;
+            display: flex;
+            justify-content: space-around;
+            padding: 14px 0;
+            color: #999999;
+            z-index: 99999;
+            border-top: 1px solid var(--border-gray);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+        }
+        .nav-item { text-align: center; font-size: 11px; cursor: pointer; transition: all 0.2s ease; flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .nav-item-icon { font-size: 20px; }
+        .nav-item.active { color: var(--bg-utama); font-weight: bold; transform: translateY(-2px); }
+        .help-icon { display: inline-flex; justify-content: center; align-items: center; width: 16px; height: 16px; background: var(--danger); color: #fff; border-radius: 50%; font-size: 11px; font-weight: bold; cursor: pointer; margin-left: 6px; vertical-align: middle; }
+        .pagination-container { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 18px; color: #000; font-weight: bold; }
+        .btn-page { background: #000000; color: var(--bg-utama); border: 1px solid var(--border-gray); padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: bold; }
+        .btn-page:disabled { background: #222; color: #666; cursor: not-allowed; }
+        .hash-id-text { font-family: monospace; background: #222; color: var(--bg-utama); padding: 2px 6px; border-radius: 4px; font-size: 10px; cursor: pointer; display: inline-block; margin-top: 4px; width: fit-content; border: 1px solid #333; }
+        .adm-collapse-btn { width: 100%; padding: 14px; background: #1a1a1a; color: var(--bg-utama); border: 1px solid #333; border-radius: 14px; text-align: left; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 5px; }
+        .adm-collapse-content { display: none; background: #0a0000; border: 1px dashed #444; padding: 14px; border-radius: 14px; margin-bottom: 15px; }
+        .adm-ad-slot-card { background: #140202; border: 1px solid #310a0a; padding: 14px; border-radius: 12px; margin-bottom: 12px; position: relative; }
+        /* ==========================================================================
+           ⚙️ MODAL SYSTEM OVERLAY
+           ========================================================================== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 250000;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+        .modal-content {
+            background: #0d0606;
+            border: 2px solid #221111;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 390px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 22px;
+            box-shadow: 0 12px 36px rgba(0,0,0,0.7);
+            color: #ffffff;
+            box-sizing: border-box;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #211111;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        .btn-close-modal {
+            background: none;
+            border: none;
+            color: var(--danger);
+            font-size: 22px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .lang-section {
+            background: #000000;
+            border: 1px solid #221111;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 18px;
+        }
+        .lang-btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .lang-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            background: #111;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        .lang-btn.active {
+            background: var(--bg-utama);
+            color: #000;
+            border-color: var(--bg-utama);
+        }
+        .btn-gear-trigger {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 18px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-gear-trigger:active {
+            transform: scale(0.9) rotate(30deg);
+            background: rgba(163, 255, 71, 0.2);
+        }
+        
+        #pop-up-video-standby-captcha {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.95); z-index: 400000; display: none; 
+            justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;
+        }
+        .live-log-container {
+            background: #000;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 10px;
+            max-height: 120px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 11px;
+            color: #a3ff47;
+            margin-top: 6px;
+        }
+        #search-referral {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #2c2c2c;
+            background: var(--dark-gray);
+            color: #ffffff;
+            outline: none;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="network-status">⚠️ Jaringan Terputus! Menghubungkan kembali...</div>
+    <div id="container-marquee-global"></div>
+
+    <div id="tab-home" class="tab-content active">
+        <div class="card" style="padding-right: 60px; cursor: pointer;" onclick="window.pindahTab('analisa', document.getElementById('nav-profil'))">
+            <h4 id="user-nama" style="margin:0; font-size:16px; color:var(--bg-utama);">@user</h4>
+            <span id="user-uid" style="font-size:11px; color:#888888; display:block; margin-top:4px;">UID: -</span>
+            <div class="btn-gear-trigger" onclick="event.stopPropagation(); window.openSettingsModalGlobal()">⚙️</div>
+        </div>
+        
+        <div class="card" style="text-align:center; padding: 30px 20px;">
+            <span id="txt-label-balance" style="font-size:12px; color:#aaa; text-transform:uppercase; letter-spacing:1px;">Total Saldo Koin</span>
+            <h1 style="margin: 10px 0 0 0; font-size: 36px; color:#ffffff;">🪙 <span id="balance-value">...</span></h1>
+        </div>
+        
+        <div class="menu-item" onclick="window.pindahTab('video-ads', null)">
+            <span id="txt-menu-view-ads" style="font-weight: bold; display:flex; align-items:center; gap:10px;">📢 Tonton Iklan</span>
+            <span>❯</span>
+        </div>
+    </div>
+
+    <div id="tab-tasks" class="tab-content">
+        <h2 id="txt-heading-surfing" style="margin-top:0;">🌐 Misi Klik Jelajah Website</h2>
+        <div id="user-global-quarantine-notice" style="display:none; background:rgba(255,77,77,0.15); border:1px solid var(--danger); color:var(--danger); padding:14px; border-radius:14px; font-size:12px; font-weight:bold; text-align:center; margin-bottom:15px; line-height:1.4;">
+            🚫 SELURUH TUGAS DIKUNCI MASAL!<br><span id="txt-qsurf-countdown-prefix">Sisa penalti: </span><span id="txt-quarantine-countdown">0s</span>
+        </div>
+        <div id="user-dynamic-surfing-cards-root"></div>
+    </div>
+
+    <div id="tab-history-keuangan" class="tab-content">
+        <h2 id="txt-heading-history" style="margin-top:0;">⏱️ Riwayat Transaksi Anda</h2>
+        <div style="margin-bottom: 14px;">
+            <label id="txt-label-filter-history" style="font-size: 11px; color: #000; font-weight: bold; display: block; margin-bottom: 5px;">🔍 Saring Berdasarkan Tipe:</label>
+            <select id="input-filter-history" class="input-dark" style="padding: 10px; background: #000; color: var(--bg-utama); border-radius: 12px; border: 1px solid #222;" onchange="window.eksekusiPemicuFilterHistoryLokal()">
+                <option id="opt-filter-all" value="ALL">Semua Transaksi (Tampilkan Semua)</option>
+                <option id="opt-filter-video" value="VIDEO">📺 Khusus Klaim Reward Iklan</option>
+                <option id="opt-filter-surfing" value="SURFING">🌐 Khusus Klaim Misi Jelajah Web</option>
+                <option id="opt-filter-wd" value="WITHDRAW">💸 Khusus Riwayat Withdraw Manual</option>
+                <option id="opt-filter-admin" value="ADMIN">⚖️ Khusus Koreksi / Bonus Dari Admin</option>
+            </select>
+        </div>
+        <div id="history-list"></div>
+        <div class="pagination-container">
+            <button id="btn-prev-page" class="btn-page" onclick="window.gantiHalamanHistory(-1)">◀ Prev</button>
+            <span id="txt-page-indicator">Halaman 1</span>
+            <button id="btn-next-page" class="btn-page" onclick="window.gantiHalamanHistory(1)">Next ▶</button>
+        </div>
+    </div>
+
+    <div id="tab-wallets" class="tab-content">
+        <div class="wallet-header"><h2 id="txt-heading-wallet" style="margin:0;">💼 Penarikan Saldo</h2></div>
+        <div class="wd-info-box">
+            ⚠️ Min WD: <span id="txt-min-wd" class="wd-val">...</span> | Max WD: <span id="txt-max-wd" class="wd-val">...</span>
+        </div>
+        <div id="bank-disturbance-alert" style="display: none; background: rgba(255,77,77,0.12); border: 1px solid var(--danger); color: var(--danger); padding: 14px; border-radius: 16px; margin-bottom: 16px; font-size: 12px; font-weight: bold; line-height: 1.4;">
+            ⚠️ PERINGATAN SISTEM: Beberapa gateway E-Wallet/Bank sedang mengalami gangguan teknis.
+        </div>
+        <div id="wallet-frozen-notice-block" style="display: none; background: #ff4d4d; color: #000000; padding: 18px; border-radius: 20px; font-weight: bold; font-size: 13px; text-align: center; margin-bottom: 20px; border: 2px solid #000; line-height: 1.5;">
+            ❄️ AKSES PENARIKAN DIBEKUKAN SEMENTARA!<br><span id="txt-wfreeze-prefix">Sisa waktu penalti beku: </span><span id="txt-wallet-freeze-countdown">0s</span>
+        </div>
+        <div id="wallet-main-form-wrapper">
+            <div class="card" style="border: 1px solid #222; background: #070707; position:relative;">
+                <div id="container-wallet-captcha-block" style="display:none; background:#000; border:1px solid var(--warning); padding:14px; border-radius:14px; margin-bottom:12px; text-align:center;">
+                    <label style="font-size:11px; color:var(--warning); font-weight:bold;">🧩 Konfirmasi Keamanan Akun:</label>
+                    <div id="txt-wallet-captcha-question" style="font-size:20px; font-weight:bold; margin:6px 0; color:#fff;">0 + 0 = ?</div>
+                    <input type="number" id="input-wallet-captcha-answer" class="input-dark" style="text-align:center;" placeholder="Masukkan Jawaban Angka">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px;">
+                    <select id="input-bank" class="input-dark"></select>
+                    <input type="text" id="input-nama-rek" class="input-dark" placeholder="Atas Nama Rekening Pemilik">
+                    <input type="text" id="input-rekening" class="input-dark" placeholder="Nomor Rekening / No HP E-Wallet">
+                    <button id="btn-save-wallet-rek-trigger" onclick="window.simpanRekening()" class="btn-action" style="width:100%;">Simpan Akun Rekening</button>
+                </div>
+                <div id="info-rekening" style="background:#141414; padding:14px; border-radius:14px; font-size:13px; border:1px solid #222; color:#ccc;">Belum diatur</div>
+            </div>
+            <div id="container-wallet-rules-wd" style="margin-top:18px; margin-bottom: 6px; font-size: 12px; font-weight: bold; color: #000000; padding-left: 4px;">
+                <span id="txt-info-rendering-wd-string">Memuat aturan...</span>
+            </div>
+            <div class="input-group">
+                <input type="number" id="input-nominal" class="input-dark" placeholder="Masukkan Nominal Penarikan">
+                <button onclick="window.requestWithdrawalManual()" class="btn-action" id="btn-submit-wd-utama">Tarik</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-analisa" class="tab-content">
+        <h2 id="txt-heading-profil">📊 Statistik Profil</h2>
+        <div class="card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px;">
+            <div style="border-right: 1px dashed #333; padding-right: 10px;">
+                <p id="txt-label-dompet-utama" style="margin: 0; color:#aaa; font-size:11px; text-transform:uppercase;">Dompet Utama</p>
+                <p style="margin: 6px 0 0 0; font-size: 20px; font-weight: bold; color: #ffffff;">🪙 <span id="analisa-saldo">...</span></p>
+            </div>
+            <div style="padding-left: 10px;">
+                <p id="txt-label-saldo-keseluruhan" style="margin: 0; color:var(--bg-utama); font-size:11px; text-transform:uppercase;">Saldo Keseluruhan</p>
+                <p style="margin: 6px 0 0 0; font-size: 20px; font-weight: bold; color: var(--bg-utama);">🪙 <span id="analisa-saldo-keseluruhan">...</span></p>
+            </div>
+        </div>
+        <div class="card" style="background: #000000; border:1px solid #222; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding:14px; margin-bottom:15px;">
+            <div>
+                <span id="txt-label-bonus-reg" style="font-size:10px; color:#888; display:block;">🎁 Bonus Registrasi Ref</span>
+                <span style="font-size:14px; font-weight:bold; color:var(--bg-utama);">🪙 <span id="txt-stat-bonus-reg">0</span></span>
+            </div>
+            <div style="border-left:1px solid #222; padding-left:10px;">
+                <span id="txt-label-bonus-akt" style="font-size:10px; color:#888; display:block;">📈 Bonus Aktivitas Aliansi</span>
+                <span style="font-size:14px; font-weight:bold; color:var(--success);">🪙 <span id="txt-stat-bonus-akt">0</span></span>
+            </div>
+        </div>
+        
+        <h3 id="txt-label-akumulasi" style="margin-top: 15px; font-size:15px; color:#333;">📈 Akumulasi Statistik</h3>
+        <div class="wallet-grid" style="margin-bottom: 18px;">
+            <div class="card" style="margin-bottom:0; text-align:center; padding:15px 10px;">
+                <div style="font-size: 24px; margin-bottom:5px;">📊</div>
+                <div id="stat-total-transaksi-clean" style="font-size: 18px; font-weight: bold; color:#fff;">0</div>
+                <div id="txt-desc-total-transaksi" style="font-size: 10px; color: #777; margin-top:2px; line-height: 1.3;">Total Keseluruhan Transaksi<br><span style="color:var(--danger); font-size:9px;">(Kecuali Penarikan)</span></div>
+            </div>
+            <div class="card" style="margin-bottom:0; text-align:center; cursor: pointer; border: 1px solid #222; padding:15px 10px;" onclick="window.bukaPopUpReferral()">
+                <div style="font-size: 24px; margin-bottom:5px;">🤝</div>
+                <div id="stat-referral" style="font-size: 18px; font-weight: bold; color:var(--bg-utama);">0</div>
+                <div id="txt-label-ref-system-link" style="font-size: 10px; color: var(--bg-utama); font-weight: bold; margin-top:2px;">Referral System ❯</div>
+            </div>
+        </div>
+        <h3 style="margin-top: 20px; font-size:15px; color:#000000; font-weight: bold;"><span id="txt-label-analitik-penghasilan">📊 Analitik Penghasilan</span> <span id="txt-mode-grafik" style="font-size:11px; color:#666;">(Sentuh batang untuk detail)</span></h3>
+        <div class="card" style="background: #000000; border: 1px solid var(--border-gray); padding: 22px 18px;">
+            <button id="btn-back-grafik" onclick="window.resetKeGrafikGlobal()" style="display:none; margin-bottom:12px; padding:4px 10px; background:#222; color:var(--bg-utama); border:1px solid #333; border-radius:6px; font-size:11px; cursor:pointer; font-weight:bold;">❮ Kembali ke Ringkasan</button>
+            <div id="chart-bars-container" style="display: flex; justify-content: space-around; align-items: flex-end; height: 160px; padding-bottom: 8px; border-bottom: 1px dashed #222; box-sizing: border-box;"></div>
+        </div>
+    </div>
+    
+    <div id="tab-video-ads" class="tab-content">
+        <h2 id="txt-heading-video-ads" style="margin-top:0;">🎬 Menu Penonton Iklan</h2>
+        <div id="user-video-mass-penalty-notice" style="display:none; background:rgba(255,77,77,0.15); border:1px solid var(--danger); color:var(--danger); padding:14px; border-radius:14px; font-size:12px; font-weight:bold; text-align:center; margin-bottom:15px; line-height:1.4;">
+            🚫 MENUTUP IKLAN TERLALU CEPAT!<br><span id="txt-vpenalty-countdown-prefix">Sisa waktu penalti: </span><span id="txt-video-penalty-countdown">0s</span>
+        </div>
+        <div id="user-video-info-card-pool" class="card" style="background: #0a0505; border: 1px dashed var(--warning); padding: 15px; border-radius: 16px; margin-bottom: 15px;">
+            <h4 id="txt-vtitle-info" style="margin: 0 0 6px 0; color: var(--warning); font-size: 13px; display:flex; align-items:center; gap:8px;">📺 Informasi Ruang Tugas Video</h4>
+            <p id="txt-video-info-card-desc" style="margin: 0; font-size: 11px; color: #b3b3b3; line-height: 1.4;">Silakan tonton slot video yang tersedia di bawah ini untuk mendapatkan reward koin harian. Setiap slot memiliki durasi delay jeda cooldown yang dikendalikan oleh sistem cloud.</p>
+        </div>
+        <div id="user-dynamic-ads-cards-root"></div>
+    </div>
+
+    <div class="modal-overlay" id="pop-up-settings-global">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="txt-modal-settings-title" style="margin: 0; color: var(--bg-utama);">⚙️ Pengaturan Aplikasi</h3>
+                <button class="btn-close-modal" onclick="window.closeSettingsModalGlobal()">✕</button>
+            </div>
+            <div class="lang-section">
+                <label id="txt-modal-label-lang" style="font-size: 11px; color: #aaa; font-weight: bold; display: block; margin-bottom: 6px;">🌐 PILIH BAHASA / SELECT LANGUAGE:</label>
+                <div class="lang-btn-group">
+                    <button id="btn-lang-id" class="lang-btn active" onclick="window.gantiBahasaAplikasiEngine('ID')">Indonesia</button>
+                    <button id="btn-lang-en" class="lang-btn" onclick="window.gantiBahasaAplikasiEngine('EN')">English</button>
+                </div>
+            </div>
+            <div id="panel-super-admin" style="display: none; border-top: 2px dashed var(--danger); padding-top: 15px; margin-top: 15px;">
+                <h3 id="adm-title-panel" style="margin-top: 0; color: var(--danger); font-size:15px; border-bottom:1px solid #310000; padding-bottom:10px;">👑 Suliwaa Master Admin Center</h3>
+                
+                <div style="background: #1a0f00; border: 1px solid var(--warning); padding: 12px; border-radius: 12px; margin-bottom: 14px;">
+                    <label id="lbl-adm-circuit-breaker" style="font-size: 11px; color: var(--warning); font-weight: bold;">⚠️ SAKELAR GLOBAL MAINTENANCE (Circuit Breaker):</label>
+                    <div style="display:flex; gap:10px; margin-top:6px;">
+                        <select id="adm-switch-maintenance-video" class="input-dark" style="padding:6px; font-size:12px;">
+                            <option value="Buka">📢 Iklan: AKTIF</option>
+                            <option value="Tutup">📢 Iklan: MAINTENANCE</option>
+                        </select>
+                        <select id="adm-switch-maintenance-surf" class="input-dark" style="padding:6px; font-size:12px;">
+                            <option value="Buka">🌐 Jelajah: AKTIF</option>
+                            <option value="Tutup">🌐 Jelajah: MAINTENANCE</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="adm-master-config-block" style="margin-bottom: 18px; background: #1a0505; padding: 14px; border-radius: 16px; border: 1px solid #410a0a;">
+                    <label id="lbl-adm-announcement" style="font-size: 11px; color: #ff8888; font-weight: bold;">📢 Teks Berjalan Pengumuman Aplikasi:</label>
+                    <textarea id="adm-input-marquee" class="input-dark" style="width: 100%; margin-top: 6px; height: 50px; resize: none;" placeholder="Ketik info..."></textarea>
+                    
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px;">
+                        <label id="lbl-adm-recovery" style="font-size: 11px; color: var(--bg-utama); font-weight: bold;">🔑 Secure URL Recovery Key Owner:</label>
+                        <span id="btn-recovery-help" onclick="window.tampilkanPanduanRecoveryKey()" style="background: var(--warning); color: #000; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer;">?</span>
+                    </div>
+                    <input type="text" id="adm-input-recovery-email" class="input-dark" style="padding: 10px; font-size: 13px; margin-top:6px; border: 1px solid var(--danger);">
+                    
+                    <div class="adm-collapse-btn" onclick="window.toggleCollapseMenuv16('adm-container-collapse-captcha', 'adm-arrow-captcha')">
+                        <span id="txt-adm-btn-captcha">🛡️ Kontrol Sistem Captcha & Penalti</span><span id="adm-arrow-captcha">▼</span>
+                    </div>
+                    <div id="adm-container-collapse-captcha" class="adm-collapse-content" style="background:#111; padding:12px; border-radius:12px;">
+                        <div style="margin-bottom:10px;">
+                            <label id="lbl-adm-captcha-surf" style="font-size:11px; color:var(--bg-utama); font-weight:bold;">🌐 Captcha Misi Jelajah:</label>
+                            <select id="adm-status-captcha-surf" class="input-dark" style="margin-top:4px; padding:6px;"><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></select>
+                        </div>
+                        <div style="margin-bottom:10px;">
+                            <label id="lbl-adm-captcha-wallet" style="font-size:11px; color:var(--warning); font-weight:bold;">💼 Captcha & Hukuman Beku Wallet (Menit):</label>
+                            <select id="adm-status-captcha-rek" class="input-dark" style="margin-top:4px; padding:6px;"><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></select>
+                            <input type="number" id="adm-time-penalty-rek" class="input-dark" style="margin-top:4px; padding:6px; font-size:12px;" placeholder="Durasi Beku Wallet (Menit)">
+                        </div>
+                        <div style="margin-bottom:10px;">
+                            <label id="lbl-adm-delay-tol" style="font-size:11px; color:var(--bg-utama); font-weight:bold;">🛡️ Toleransi Delay Jaringan Iklan & Jelajah (Detik):</label>
+                            <input type="number" id="adm-input-delay-tolerance" class="input-dark" style="margin-top:4px; padding:6px; font-size:12px;" placeholder="Rekomendasi: 3 - 5">
+                        </div>
+                        <div style="margin-bottom:10px; border-top: 1px dashed #333; padding-top: 10px; margin-top: 10px;">
+                            <label id="lbl-adm-rate-limit" style="font-size: 11px; color:var(--bg-utama); font-weight:bold;">🛡️ Anti-Spam Rate Limit (Batas Klik Barbar):</label>
+                            <input type="number" id="adm-input-ip-max-clicks" class="input-dark" style="margin-top:4px; padding:6px; font-size:12px;" placeholder="Rekomendasi: 8">
+                        </div>
+                        <div style="margin-bottom:10px;">
+                            <label id="lbl-adm-check-dur" style="font-size: 11px; color:var(--warning); font-weight:bold;">⏱️ Durasi Rentang Cek Anti-Spam (Menit):</label>
+                            <input type="number" id="adm-input-ip-check-duration" class="input-dark" style="margin-top:4px; padding:6px; font-size:12px;" placeholder="Rekomendasi: 3">
+                        </div>
+                        <div style="margin-bottom:10px; border-top: 1px dashed #333; padding-top: 10px;">
+                            <label id="lbl-adm-captcha-video" style="font-size: 11px; color:#ff8888; font-weight:bold;">📺 Captcha Standby Video & Hukuman (Menit):</label>
+                            <select id="adm-status-captcha-video" class="input-dark" style="margin-top:4px; padding:6px;"><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></select>
+                            <input type="number" id="adm-time-penalty-video" class="input-dark" style="margin-top:4px; padding:6px; font-size:12px;" placeholder="Durasi Kunci Video Penalti (Menit)">
+                        </div>
+                    </div>
+                    
+                    <div class="adm-collapse-btn" onclick="window.toggleCollapseMenuv16('adm-container-collapse-video', 'adm-arrow-video')">
+                        <span id="txt-adm-btn-ads">🎬 Kontrol Multi-SDK Jaringan Iklan Video</span><span id="adm-arrow-video">▼</span>
+                    </div>
+                    <div id="adm-container-collapse-video" class="adm-collapse-content">
+                        <button id="btn-adm-add-video" onclick="window.adminTambahSlotIklanBaru()" style="width:100%; padding:10px; background:var(--bg-utama); color:#000; font-weight:bold; border:none; border-radius:10px; cursor:pointer; font-size:12px; margin-bottom:15px;">➕ Buat Slot Iklan Video Baru</button>
+                        <div id="adm-dynamic-ads-list-root"></div>
+                    </div>
+                    
+                    <div class="adm-collapse-btn" onclick="window.toggleCollapseMenuv16('adm-container-collapse-surfing', 'adm-arrow-surfing')">
+                        <span id="txt-adm-btn-surf">🌐 Kontrol Misi Dynamic Jelajah Ads Pool</span><span id="adm-arrow-surfing">▼</span>
+                    </div>
+                    <div id="adm-container-collapse-surfing" class="adm-collapse-content">
+                        <div style="background: #110101; border: 1px solid var(--danger); padding: 12px; border-radius: 12px; margin-bottom: 14px;">
+                            <label id="lbl-adm-surf-penalty" style="font-size: 11px; color: var(--danger); font-weight: bold; display:block;">⏱️ Waktu Hukuman Penalti Jelajah (Menit):</label>
+                            <input type="number" id="adm-input-surfing-penalty-time" class="input-dark" style="padding: 8px; font-size: 13px; margin-top: 6px; border: 1px solid #5a1111;" placeholder="Contoh: 30">
+                        </div>
+                        <button id="btn-adm-add-surf" onclick="window.adminTambahSlotSurfingBaru()" style="width:100%; padding:10px; background:var(--bg-utama); color:#000; font-weight:bold; border:none; border-radius:10px; cursor:pointer; font-size:12px; margin-bottom:15px;">➕ Buat Slot Misi Jelajah Baru</button>
+                        <div id="adm-dynamic-surfing-list-root"></div>
+                    </div>
+                    
+                    <div class="adm-collapse-btn" onclick="window.toggleCollapseMenuv16('adm-container-collapse-banks', 'adm-arrow-banks')">
+                        <span id="txt-adm-btn-bank">💼 Kontrol Gateway & Status Operasional Bank Pool</span><span id="adm-arrow-banks">▼</span>
+                    </div>
+                    <div id="adm-container-collapse-banks" class="adm-collapse-content">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; margin-bottom: 14px; background: #111; padding: 10px; border-radius: 12px; border: 1px solid #222;">
+                            <div>
+                                <label id="lbl-adm-min-wd" style="font-size: 11px; color: var(--bg-utama);">Min WD (Koin):</label>
+                                <input type="number" id="adm-input-min-wd" class="input-dark" style="padding: 8px; font-size: 13px; margin-top:4px;">
+                            </div>
+                            <div>
+                                <label id="lbl-adm-max-wd" style="font-size: 11px; color: var(--danger);">Max WD (0 = No Limit):</label>
+                                <input type="number" id="adm-input-max-wds" class="input-dark" style="padding: 8px; font-size: 13px; margin-top:4px;">
+                            </div>
+                        </div>
+                        <button id="btn-adm-add-bank" onclick="window.adminTambahSlotBankBaru()" style="width:100%; padding:10px; background:var(--bg-utama); color:#000; font-weight:bold; border:none; border-radius:10px; cursor:pointer; font-size:12px; margin-bottom:15px;">➕ Gateway Baru</button>
+                        <div id="adm-dynamic-banks-list-root"></div>
+                    </div>
+                    
+                    <div class="adm-collapse-btn" onclick="window.toggleCollapseMenuv16('adm-container-collapse-referral', 'adm-arrow-referral')">
+                        <span id="txt-adm-btn-ref">🤝 Kontrol Insentif Jaringan & Anti-Fraud Referral</span><span id="adm-arrow-referral">▼</span>
+                    </div>
+                    <div id="adm-container-collapse-referral" class="adm-collapse-content">
+                        <div style="background: #111; padding: 14px; border-radius: 14px; border: 1px dashed var(--bg-utama);">
+                            <h4 id="txt-adm-ref-title" style="margin: 0 0 10px 0; font-size: 12px; color: var(--bg-utama);">🤝 Konfigurasi Insentif & Syarat Anti-Fraud Referral</h4>
+                            <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; background: #000; padding: 10px; border-radius: 8px;">
+                                <span id="txt-adm-ref-status-lbl" style="font-size: 11px; color: #fff; font-weight: bold;">Status Sistem Link Referral:</span>
+                                <select id="adm-switch-referral" class="input-dark" style="width: auto; padding: 6px 12px; font-size: 12px;">
+                                    <option value="Aktif">🟢 AKTIF</option>
+                                    <option value="Nonaktif">🔴 NONAKTIF</option>
+                                </select>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                                <div>
+                                    <label id="lbl-adm-ref-reg" style="font-size: 9px; color: #aaa;">Reward Registrasi:</label>
+                                    <input type="number" id="adm-input-ref-register" class="input-dark" style="padding: 8px; font-size: 12px; margin-top:3px;">
+                                </div>
+                                <div>
+                                    <label id="lbl-adm-ref-pct" style="font-size: 9px; color: #aaa;">Bonus Aktivitas (%):</label>
+                                    <input type="number" id="adm-input-ref-percent" class="input-dark" style="padding: 8px; font-size: 12px; margin-top:3px;">
+                                </div>
+                            </div>
+                            <div>
+                                <label id="lbl-adm-ref-thrs" style="font-size: 10px; color: #ffaa00; font-weight: bold;">🎯 Syarat Minimal Aktivitas Downline:</label>
+                                <input type="number" id="adm-input-ref-threshold" class="input-dark" style="padding: 8px; font-size: 12px; margin-top:4px; border: 1px solid #ffaa00;" placeholder="Contoh: 10">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top:14px;">
+                        <label id="lbl-adm-live-log" style="font-size: 11px; color: var(--bg-utama); font-weight: bold;">🖥️ Live Log Monitor Aktivitas Koin Global:</label>
+                        <div id="adm-live-log-monitor-box" class="live-log-container">Menunggu aktivitas jaringan...</div>
+                    </div>
+                    
+                    <button id="btn-adm-save-config" onclick="window.adminUpdateSistemConfig()" style="margin-top: 18px; width: 100%; padding: 12px; background: var(--danger); color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">Simpan Pengaturan Konfigurasi</button>
+                </div>
+                
+                <div style="background: #161616; padding: 14px; border-radius: 16px; border: 1px solid #262626;">
+                    <label id="lbl-adm-search-uid" style="font-size: 11px; color: var(--bg-utama); font-weight: bold;">🔍 Cari & Manipulasi Akun Lapangan (UID):</label>
+                    <div style="display: flex; gap: 8px; margin-top: 6px; margin-bottom: 12px;">
+                        <input type="text" id="adm-search-uid" class="input-dark" placeholder="Masukkan UID User Target">
+                        <button id="btn-adm-do-search" onclick="window.adminCariUserFirestore()" style="padding: 0 18px; background: var(--bg-utama); color: #000; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">Cari</button>
+                    </div>
+                    
+                    <div id="adm-container-hasil-user" style="display: none; background: #000000; padding: 14px; border-radius: 14px; border: 1px solid #222222;">
+                        <p style="margin: 0 0 4px 0; font-size: 13px;">User: <b id="adm-txt-nama" style="color:#fff;">-</b></p>
+                        <p style="margin: 0 0 4px 0; font-size: 13px;">Saldo Aktif: <b id="adm-txt-saldo" style="color:var(--bg-utama)">-</b></p>
+                        <p style="margin: 0 0 4px 0; font-size: 11px; color: #ffaa00;">Aktivitas Mandiri Akun: <b id="adm-txt-total-aktivitas-user" style="color:#fff">0</b> Klik</p>
+                        <p style="margin: 0 0 6px 0; font-size: 11px; color: #aaa;">Status Dompet: <b id="adm-txt-status-wallet" style="color:var(--success)">Aktif</b></p>
+                        <p style="margin: 0 0 12px 0; font-size: 11px; color: #88px;">Tingkatan Jabatan: <b id="adm-txt-jabatan" style="color:var(--warning);">-</b></p>
+                        
+                        <button id="btn-adm-reset-saldo" onclick="window.adminResetSaldoKeseluruhanUser()" style="width: 100%; padding: 12px; background: #ffaa00; color: #000; font-weight: bold; border: none; border-radius: 10px; font-size: 12px; cursor: pointer; margin-bottom: 10px;">⚠️ Reset Saldo Keseluruhan User</button>
+                        <button id="adm-btn-freeze-wallet" onclick="window.adminToggleFreezeWallet()" style="width: 100%; padding: 12px; color: #ffffff; font-weight: bold; border: none; border-radius: 10px; font-size: 12px; cursor: pointer; margin-bottom: 15px; background: #555;">❄️ Penarikan Wallet Dibekukan</button>
+                        
+                        <div id="adm-owner-rbac-tools" style="margin-bottom: 14px; padding: 10px; background:#0d0d0d; border-radius:10px; border:1px solid #222; display:none;">
+                            <label id="lbl-adm-rbac-title" style="font-size:11px; color:var(--bg-utama); font-weight:bold;">⚙️ Atur Otoritas Tingkatan Jabatan:</label>
+                            <select id="adm-select-role" class="input-dark" style="margin-top:6px; padding:8px;" onchange="window.toggleMatriksCentangView()">
+                                <option value="User">User Biasa</option>
+                                <option value="Admin">Admin Pendamping</option>
+                            </select>
+                            <div id="adm-privilege-matrix" class="privilege-box">
+                                <div class="privilege-item"><input type="checkbox" id="p-koreksi"> <span id="txt-p-koreksi">Koreksi Tambah/Kurang Saldo</span></div>
+                                <div class="privilege-item"><input type="checkbox" id="p-blokir"> <span id="txt-p-blokir">Blokir/Buka Suspend Akun</span></div>
+                                <div class="privilege-item"><input type="checkbox" id="p-validasi"> <span id="txt-p-validasi">Validasi Penarikan (ACC/Tolak)</span></div>
+                            </div>
+                            <button id="btn-adm-save-role" onclick="window.adminSimpanJabatanOwner()" style="width:100%; margin-top:10px; padding:8px; background:var(--bg-utama); color:#000; font-weight:bold; border:none; border-radius:8px; font-size:12px; cursor:pointer;">Simpan Otoritas Jabatan</button>
+                        </div>
+                        
+                        <div id="block-tool-koreksi" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                            <input type="number" id="adm-input-nominal-koreksi" class="input-dark" placeholder="Nominal Angka" style="font-size: 13px; padding: 10px;">
+                            <button onclick="window.adminEksekusiKoreksiSaldo(true)" style="padding: 0 16px; background: var(--success); color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size:16px;">+</button>
+                            <button onclick="window.adminEksekusiKoreksiSaldo(false)" style="padding: 0 16px; background: var(--danger); color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size:16px;">-</button>
+                        </div>
+                        
+                        <button id="adm-btn-blokir" onclick="window.adminToggleStatusBlokir()" style="width: 100%; padding: 10px; color: #fff; border: none; border-radius: 10px; font-weight: bold; font-size: 13px; cursor: pointer; margin-bottom: 14px; background: #333;">Blokir Akun</button>
+                        
+                        <div style="border-top: 1px dashed #333; padding-top: 12px; margin-top: 12px;">
+                            <label id="lbl-adm-target-history" style="font-size: 11px; color: #ff8888; font-weight: bold; display: block; margin-bottom: 6px;">⏱️ Riwayat Gerakan Finansial Target:</label>
+                            <div id="adm-list-history-user" style="max-height: 250px; overflow-y: auto; padding-right:4px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pop-up-referral" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000; z-index: 200000; display: none; flex-direction: column; padding: 20px; box-sizing: border-box; color: #ffffff;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+            <h3 id="txt-heading-popup-ref" style="margin: 0; color: var(--bg-utama);">🤝 Jaringan Aliansi Teman</h3>
+            <button id="btn-close-popup-ref" onclick="window.tutupPopUpReferral()" style="background: var(--danger); color: #fff; border: none; padding: 10px 18px; border-radius: 10px; font-weight: bold; cursor: pointer;">Tutup</button>
+        </div>
+        <div id="container-user-link-referral-block" style="background: #111; border: 1px dashed var(--bg-utama); padding: 14px; border-radius: 14px; margin-bottom: 15px;">
+            <label id="txt-label-link-invitation" style="font-size: 10px; color: #aaa; font-weight: bold; display: block; margin-bottom: 6px;">🔗 Tautan Undangan Aliansi Anda:</label>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="txt-user-referral-url-field" class="input-dark" style="font-size: 11px; padding: 8px; background:#000;" readonly>
+                <button id="btn-copy-ref" onclick="window.salinLinkReferralKeClipboard()" style="padding: 0 14px; background: var(--bg-utama); color: #000; border: none; border-radius: 10px; font-weight: bold; font-size: 12px; cursor: pointer;">Salin</button>
+            </div>
+        </div>
+        <div id="user-referral-incentive-notice-box" style="display:none; padding:12px; border-radius:12px; font-size:11px; margin-bottom:15px; line-height:1.4;"></div>
+        <div style="margin-bottom: 15px;">
+            <input type="text" id="search-referral" oninput="window.filterCariReferral()" placeholder="🔍 Ketik username aliansi target...">
+        </div>
+        <div id="referral-list-container" style="flex-grow: 1; overflow-y: auto;"></div>
+    </div>
+
+    <div id="pop-up-timer-surfing" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 400000; display: none; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+        <div style="background: #111; border: 2px dashed var(--bg-utama); padding: 25px; border-radius: 24px; color: #fff; max-width: 380px; width: 100%; text-align: center; box-sizing: border-box;">
+            <h2 id="txt-heading-timer-surf" style="margin-top: 0; color: var(--bg-utama);">⏱️ Timer Jelajah Berjalan</h2>
+            <h1 style="font-size: 48px; margin: 20px 0; color: #ffffff;" id="txt-countdown-surfing-clock">0s</h1>
+            <div id="container-math-captcha-block" style="display:none; background:#000; border:1px solid #333; padding:15px; border-radius:14px; margin-bottom:15px;">
+                <label style="font-size:12px; color:var(--warning); font-weight:bold; display:block; margin-bottom:8px;">🧩 Sistem Anti-Bot Captcha:</label>
+                <div style="font-size:22px; font-weight:bold; letter-spacing:2px; color:#fff; margin-bottom:10px;" id="txt-captcha-math-question">0 + 0 = ?</div>
+                <input type="number" id="input-captcha-answer" class="input-dark" style="text-align:center; font-size:16px; font-weight:bold; border-color:var(--warning);" placeholder="Ketik Hasil Angka">
+            </div>
+            <button id="btn-klaim-surfing-rewards" onclick="window.eksekusiValidasiKlaimSurfing()" class="btn-action" style="width: 100%; margin-top: 10px;">Klaim Koin Reward</button>
+        </div>
+    </div>
+
+    <div id="pop-up-video-standby-captcha">
+        <div style="background: #111; border: 2px dashed var(--danger); padding: 25px; border-radius: 24px; color: #fff; max-width: 380px; width: 100%; text-align: center; box-sizing: border-box;">
+            <h2 id="txt-heading-standby-video" style="margin-top: 0; color: var(--danger);">⚠️ Deteksi Standby Terlalu Lama!</h2>
+            <div style="background:#000; border:1px solid #333; padding:15px; border-radius:14px; margin-bottom:15px; margin-top:20px;">
+                <label style="font-size:12px; color:var(--warning); font-weight:bold; display:block; margin-bottom:8px;">🧩 Selesaikan Captcha Kehadiran:</label>
+                <div style="font-size:22px; font-weight:bold; letter-spacing:2px; color:#fff; margin-bottom:10px;" id="txt-video-standby-captcha-question">0 + 0 = ?</div>
+                <input type="number" id="input-video-standby-captcha-answer" class="input-dark" style="text-align:center; font-size:16px; font-weight:bold; border-color:var(--warning);" placeholder="Ketik Hasil Angka">
+            </div>
+            <div id="live-log-container" class="live-log-container"></div>
+            <button onclick="window.eksekusiUnlockVideoStandbyCaptcha()" class="btn-action" style="width: 100%; margin-top: 10px; background:var(--danger); color:#fff;">Verifikasi Saya Hadir</button>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div id="nav-home" class="nav-item active" onclick="window.pindahTab('home', this)"><span class="nav-item-icon">🏠</span><span id="nav-lbl-home">Beranda</span></div>
+        <div id="nav-tasks" class="nav-item" onclick="window.pindahTab('tasks', this)"><span class="nav-item-icon">📋</span><span id="nav-lbl-surfing">Jelajah</span></div>
+        <div id="nav-history-keuangan" class="nav-item" onclick="window.pindahTab('history-keuangan', this)"><span class="nav-item-icon">⏱️</span><span id="nav-lbl-history">Riwayat</span></div>
+        <div id="nav-wallets" class="nav-item" onclick="window.pindahTab('wallets', this)"><span class="nav-item-icon">💼</span><span id="nav-lbl-wallet">Dompet</span></div>
+        <div id="nav-profil" class="nav-item" onclick="window.pindahTab('analisa', this)"><span class="nav-item-icon">📊</span><span id="nav-lbl-profile">Profil</span></div>
+    </div>
+
+<script>
+    window.pindahTab = (id, el) => {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        const targetTab = document.getElementById('tab-' + id);
+        if(targetTab) targetTab.classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        if(el) {
+            if(typeof el === 'string') {
+                const targetedNav = document.getElementById(el);
+                if(targetedNav) targetedNav.classList.add('active');
+            } else { el.classList.add('active'); }
+        }
+        if (id === 'video-ads' && window.SuliwaaAppModule) window.SuliwaaAppModule.resetVideoAdsStandbyTrackerTimestamp();
+    };
+
+    window.toggleCollapseMenuv16 = (contentId, arrowId) => {
+        const block = document.getElementById(contentId);
+        const arrow = document.getElementById(arrowId);
+        if(block.style.display === "block") { block.style.display = "none"; arrow.innerText = "▼"; }
+        else { block.style.display = "block"; arrow.innerText = "▲"; }
+    };
+
+    window.toggleMatriksCentangView = () => {
+        const role = document.getElementById("adm-select-role").value;
+        const matrix = document.getElementById("adm-privilege-matrix");
+        if(matrix) matrix.style.display = (role === "Admin") ? "block" : "none";
+    };
+
+    window.openSettingsModalGlobal = () => {
+        document.getElementById("pop-up-settings-global").style.display = "flex";
+    };
+
+    window.closeSettingsModalGlobal = () => {
+        document.getElementById("pop-up-settings-global").style.display = "none";
+        if(window.SuliwaaAppModule) window.SuliwaaAppModule.cleanupAdminSnapshotListener();
+    };
+</script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, increment, setDoc, collection, query, where, getDocs, orderBy, limit, onSnapshot, getDoc, updateDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    
+    const firebaseApp = initializeApp({
+        apiKey: "AIzaSyCR0l9jyKmpMD7_8EjsUoE9FcxvZxceic4",
+        authDomain: "suliwaaapp.firebaseapp.com",
+        projectId: "suliwaaapp",
+        storageBucket: "suliwaaapp.firebasestorage.app",
+        messagingSenderId: "782549373450",
+        appId: "1:782549373450:web:295e3f83ea30b0615705f3"
+    });
+    
+    const db = getFirestore(firebaseApp);
+    const auth = getAuth(firebaseApp);
+
+    const SULIWAA_LOCALIZATION_MAP = {
+        ID: {
+            modal_title: "⚙️ Pengaturan Aplikasi", label_lang: "🌐 PILIH BAHASA / SELECT LANGUAGE:", label_balance: "Total Saldo Koin", menu_view_ads: "📢 Tonton Iklan", heading_surfing: "🌐 Misi Klik Jelajah Website", qsurf_prefix: "Sisa penalti: ", heading_history: "⏱️ Riwayat Transaksi Anda", label_filter_history: "🔍 Saring Berdasarkan Tipe:", filter_all: "Semua Transaksi (Tampilkan Semua)", filter_video: "📺 Khusus Klaim Reward Iklan", filter_surfing: "🌐 Khusus Klaim Misi Jelajah Web", filter_wd: "💸 Khusus Riwayat Withdraw Manual", filter_admin: "⚖️ Khusus Koreksi / Bonus Dari Admin", heading_wallet: "💼 Penarikan Saldo", wfreeze_prefix: "Sisa waktu penalti beku: ", heading_profil: "📊 Statistik Profil", label_dompet_utama: "Dompet Utama", label_saldo_keseluruhan: "Saldo Keseluruhan", label_bonus_reg: "🎁 Bonus Registrasi Ref", label_bonus_akt: "📈 Bonus Aktivitas Aliansi", label_akumulasi: "📈 Akumulasi Statistik", desc_total_transaksi: "Total Keseluruhan Transaksi<br><span style='color:var(--danger); font-size:9px;'>(Kecuali Penarikan)</span>", label_ref_system_link: "Referral System ❯", label_analitik_penghasilan: "📊 Analitik Penghasilan", heading_video_ads: "🎬 Menu Penonton Iklan", vpenalty_prefix: "Sisa waktu penalti: ", heading_popup_ref: "🤝 Jaringan Aliansi Teman", label_link_invitation: "🔗 Tautan Undangan Aliansi Anda:", heading_timer_surf: "⏱️ Timer Jelajah Berjalan", heading_standby_video: "⚠️ Deteksi Standby Terlalu Lama!", btn_back_chart: "❮ Kembali ke Ringkasan", wallet_placeholder_name: "Atas Nama Rekening Pemilik", wallet_placeholder_number: "Nomor Rekening / No HP E-Wallet", wallet_placeholder_amount: "Masukkan Nominal Penarikan", wallet_btn_save: "Simpan Akun Rekening", wallet_btn_withdraw: "Tarik", wallet_txt_not_set: "Belum diatur", nav_home: "Beranda", nav_surfing: "Jelajah", nav_history: "Riwayat", nav_wallet: "Dompet", nav_profile: "Profil", vtitle_info: "📺 Informasi Ruang Tugas Video", vdesc_info: "Silakan tonton slot video yang tersedia di bawah ini untuk mendapatkan reward koin harian. Setiap slot memiliki durasi delay jeda cooldown yang dikendalikan oleh sistem cloud.", adm_lbl_announcement: "📢 Teks Berjalan Pengumuman Aplikasi:", adm_lbl_recovery: "🔑 Secure URL Recovery Key Owner:", adm_btn_captcha: "🛡️ Kontrol Sistem Captcha & Penalti", adm_lbl_captcha_surf: "🌐 Captcha Misi Jelajah:", adm_lbl_captcha_wallet: "💼 Captcha & Hukuman Beku Wallet (Menit):", adm_lbl_delay_tol: "🛡️ Toleransi Delay Jaringan Iklan & Jelajah (Detik):", adm_lbl_rate_limit: "🛡️ Anti-Spam Rate Limit (Batas Klik Barbar):", adm_lbl_check_dur: "⏱️ Durasi Rentang Cek Anti-Spam (Menit):", adm_lbl_captcha_video: "📺 Captcha Standby Video & Hukuman (Menit):", adm_btn_ads: "🎬 Kontrol Multi-SDK Jaringan Iklan Video", adm_btn_add_video: "➕ Buat Slot Iklan Video Baru", adm_btn_surf: "🌐 Kontrol Misi Dynamic Jelajah Ads Pool", adm_lbl_surf_penalty: "⏱️ Waktu Hukuman Penalti Jelajah (Menit):", adm_btn_add_surf: "➕ Buat Slot Misi Jelajah Baru", adm_btn_bank: "💼 Kontrol Gateway & Status Operasional Bank Pool", adm_lbl_min_wd: "Min WD (Koin):", adm_lbl_max_wd: "Max WD (0 = No Limit):", adm_btn_add_bank: "➕ Gateway Baru", adm_btn_ref: "🤝 Kontrol Insentif Jaringan & Anti-Fraud Referral", adm_ref_title: "🤝 Konfigurasi Insentif & Syarat Anti-Fraud Referral", adm_ref_status_lbl: "Status Sistem Link Referral:", adm_lbl_ref_reg: "Reward Registrasi:", adm_lbl_ref_pct: "Bonus Aktivitas (%):", adm_lbl_ref_thrs: "🎯 Syarat Minimal Aktivitas Downline:", adm_btn_save_config: "Simpan Pengaturan Konfigurasi", adm_lbl_search_uid: "🔍 Cari & Manipulasi Akun Lapangan (UID):", adm_btn_do_search: "Cari", adm_btn_reset_saldo: "⚠️ Reset Saldo Keseluruhan User", adm_lbl_rbac_title: "⚙️ Atur Otoritas Tingkatan Jabatan:", adm_txt_p_koreksi: "Koreksi Tambah/Kurang Saldo", adm_txt_p_blokir: "Blokir/Buka Suspend Akun", adm_txt_p_validasi: "Validasi Penarikan (ACC/Tolak)", adm_btn_save_role: "Simpan Otoritas Jabatan", adm_lbl_target_history: "⏱️ Riwayat Gerakan Finansial Target:", adm_title_owner: "👑 Suliwaa Master Admin Center", adm_title_mod: "🛡️ Suliwaa Staff Panel",
+            adm_lbl_circuit_breaker: "⚠️ SAKELAR GLOBAL MAINTENANCE (Circuit Breaker):", adm_lbl_live_log: "🖥️ Live Log Monitor Aktivitas Koin Global:", text_recovery_instruction: "💡 PANDUAN RECOVERY KEY OWNER:\n\n1. Masukkan alamat email Owner utama yang terdaftar sebagai sistem pemulihan.\n2. Jika URL Secure Gateway Vercel Anda berubah, sistem cloud akan mengirimkan link migrasi otomatis ke email ini.\n3. Jangan membagikan key pemulihan ini kepada Staff atau Admin Pendamping.", option_video_active: "📢 Iklan: AKTIF", option_video_maint: "📢 Iklan: MAINTENANCE"
+        },
+        EN: {
+            modal_title: "⚙️ Application Settings", label_lang: "🌐 CHOOSE LANGUAGE / PILIH BAHASA:", label_balance: "Total Coin Balance", menu_view_ads: "📢 View Commercial Ads", heading_surfing: "🌐 Web Surfing Clicks Mission", qsurf_prefix: "Remaining penalty: ", heading_history: "⏱️ Financial Transaction History", label_filter_history: "🔍 Filter History By Type:", filter_all: "All Transactions (Show Everything)", filter_video: "Video Ad Claim Rewards Only", filter_surfing: "Web Surfing Claim Rewards Only", filter_wd: "Manual Withdrawal Records Only", filter_admin: "Admin Corrections / Bonuses Only", heading_wallet: "💼 Cashout Withdrawal Balance", wfreeze_prefix: "Remaining freeze timeout: ", heading_profil: "📊 Account Profile Analytics", label_dompet_utama: "Primary Wallet", label_saldo_keseluruhan: "Cumulative Balance", label_bonus_reg: "🎁 Registration Invite Bonus", label_bonus_akt: "📈 Downline Activity Bonus", label_akumulasi: "📈 Accumulated Performance Metrics", desc_total_transaksi: "Total Combined Transactions<br><span style='color:var(--danger); font-size:9px;'>(Excluding Cashout)</span>", label_ref_system_link: "Referral Network ❯", label_analitik_penghasilan: "📊 Revenue Analytics Chart", heading_video_ads: "🎬 Watch Advertisement Pool", vpenalty_prefix: "Lockout penalty remaining: ", heading_popup_ref: "🤝 Welfare Affiliate Network Team", label_link_invitation: "🔗 Your Affiliate Invitation Link:", heading_timer_surf: "⏱️ Surfing Active Countdown", heading_standby_video: "⚠️ Idle Standby Presence Warning!", btn_back_chart: "❮ Return to Summary", wallet_placeholder_name: "Account Holder Legal Name", wallet_placeholder_number: "Account Number / Bank Destination", wallet_placeholder_amount: "Enter Cashout Token Amount", wallet_btn_save: "Save Payment Account", wallet_btn_withdraw: "Withdraw", wallet_txt_not_set: "Not Configured Yet", nav_home: "Home", nav_surfing: "Surfing", nav_history: "History", nav_wallet: "Wallet", nav_profile: "Profile", vtitle_info: "📺 Video Space Dashboard Information", vdesc_info: "Please watch the video assets below to harvest token rewards. Each dynamic node contains customized internal network delays calibrated by core cloud.", adm_lbl_announcement: "📢 Rolling App Announcement Text:", adm_lbl_recovery: "🔑 Secure URL Recovery Key Owner:", adm_btn_captcha: "🛡️ Control Captcha & Penalty Framework", adm_lbl_captcha_surf: "🌐 Web Surfing Captcha Toggle:", adm_lbl_captcha_wallet: "💼 Wallet Captcha & Freeze Duration (Min):", adm_lbl_delay_tol: "🛡️ Network Delay Tolerance Buffer (Seconds):", adm_lbl_rate_limit: "🛡️ Anti-Spam Rate Limit (Max Clicks Allowed):", adm_lbl_check_dur: "⏱️ Anti-Spam Evaluation Window (Minutes):", adm_lbl_captcha_video: "📺 Idle Video Captcha & Lockout Duration (Min):", adm_btn_ads: "🎬 Control Video Ad Slots Configuration", adm_btn_add_video: "➕ Deploy New Video Ad Slot", adm_btn_surf: "🌐 Control Web Surfing Tasks Configuration", adm_lbl_surf_penalty: "⏱️ Surfing Disqualification Timeout (Minutes):", adm_btn_add_surf: "➕ Deploy New Web Surfing Task", adm_btn_bank: "💼 Control E-Wallet Gateways & Gateway States", adm_lbl_min_wd: "Minimum Cashout Threshold:", adm_lbl_max_wd: "Maximum Limit (0 = No Bound):", adm_btn_add_bank: "➕ Deploy New Bank Gateway", adm_btn_ref: "🤝 Control Referral System & Anti-Fraud Config", adm_ref_title: "🤝 Referral Incentives & Anti-Fraud Parameters", adm_ref_status_lbl: "Referral Ingress System Status:", adm_lbl_ref_reg: "Registration Incentive:", adm_lbl_ref_pct: "Activity Commission Base (%):", adm_lbl_ref_thrs: "🎯 Required Downline Performance Clicks:", adm_btn_save_config: "Commit System Parameters Config", adm_lbl_search_uid: "🔍 Query & Manipulate Ground Accounts (UID):", adm_btn_do_search: "Query", adm_btn_reset_saldo: "⚠️ Wipe Out Target Account Balance", adm_lbl_rbac_title: "🔍 Query & Manipulate Ground Privileges:", adm_txt_p_koreksi: "Adjust Balance Corrections", adm_txt_p_blokir: "Suspend/Revoke Target Account", adm_txt_p_validasi: "Approve/Reject Cashout Requests", adm_btn_save_role: "Commit Role Privileges", adm_lbl_target_history: "⏱️ Financial Vectors History logs:", adm_title_owner: "👑 Suliwaa Supreme Owner Engine", adm_title_mod: "🛡️ Suliwaa Staff Panel",
+            adm_lbl_circuit_breaker: "⚠️ GLOBAL MAINTENANCE SWITCH (Circuit Breaker):", adm_lbl_live_log: "🖥️ Global Coin Activity Live Log Monitor:", text_recovery_instruction: "💡 OWNER RECOVERY KEY GUIDE:\n\n1. Input the primary registered Owner email address for system restoration.\n2. If your Vercel Secure Gateway URL changes, cloud framework will dispatch auto-migration script to this inbox.\n3. Do not disclose this recovery sequence to moderators or assisting staff.", option_video_active: "📢 Ads: ACTIVE", option_video_maint: "📢 Ads: MAINTENANCE"
+        }
+    };
+    window.SULIWAA_LOCALIZATION_MAP = SULIWAA_LOCALIZATION_MAP;
+
+    ((window) => {
+        const tg = window.Telegram?.WebApp || {
+            ready: () => {},
+            showAlert: (msg) => alert(msg),
+            openLink: (url) => window.open(url, '_blank'),
+            initDataUnsafe: { user: { id: 6752317840, username: "fajarsetia3" } }
+        };
+        tg.ready();
+
+        const user = tg.initDataUnsafe.user || { id: 6752317840, username: "fajarsetia3", first_name: "Fajar" };
+        const userRef = doc(db, "users", user.id.toString());
+        const sysConfigRef = doc(db, "system_config", "setting_bot");
+        
+        let myCurrentRole = "User";
+        let isAnyAdPlayingGlobal = false; 
+        let targetUserTerpilihUid = null;
+
+        let localAdsPoolArray = [];
+        let localSurfingPoolArray = [];
+        let localBanksPoolArray = [];
+
+        let surfingActiveIdTerpilih = null;
+        let surfingDetikBerjalanLokal = 0;
+        let surfingTargetDetikDurasi = 0;
+        let surfingTimerIntervalLokal = null;
+        let captchaJawabanBenarLokal = null; 
+
+        let arrayHistoryTransaksiLokal = [];
+        let arrayHistoryTransaksiTerfilter = []; 
+        let halamanHistorySaatIni = 1;
+        const barisPerHalamanHistory = 10;
+
+        let cacheDataUserLokalGlobal = {}; 
+        let currentSystemConfigData = {};
+
+        window.isClaimingSurfing = false;
+        window.isWithdrawingLokal = false;
+        window.isAdminProcessing = false;
+
+        let unsubscribeTargetUserSnapshot = null;
+        let activeLiveLogListenerUnsubscribe = null;
+        let unsubscribeSysConfig = null;
+
+        const ubahTeksElemenAman = (idElemen, teksBaru, isHtml = false) => {
+            const el = document.getElementById(idElemen);
+            if (el) { 
+                if (isHtml) { if (el.innerHTML !== teksBaru) el.innerHTML = teksBaru; } 
+                else { if (el.innerText !== teksBaru) el.innerText = teksBaru; }
+            }
+        };
+
+        window.tampilkanPanduanRecoveryKey = () => {
+            const lang = localStorage.getItem("suliwaa_lang") || "ID";
+            const msg = SULIWAA_LOCALIZATION_MAP[lang].text_recovery_instruction;
+            tg.showAlert(msg);
+        };
+
+        window.jalankanRefreshStateDataProfilUserLokal = async () => {
+            try {
+                // Fetch Data Profil Utama User via REST API Backend Vercel
+                const resProfil = await fetch(`https://suliwaa-backend.vercel.app/api/ambilDataProfilUserAman?uid=${user.id}`);
+                const responsProfil = await resProfil.json();
+                if(responsProfil.success) {
+                    const d = responsProfil.user_data; cacheDataUserLokalGlobal = d;
+                    myCurrentRole = d.role || "User";
+                    const saldoFormatted = (d.saldo || 0).toLocaleString();
+                    document.getElementById("balance-value").innerText = saldoFormatted;
+                    document.getElementById("user-nama").innerText = "@" + (d.username || "User");
+                    document.getElementById("user-uid").innerText = "UID: " + user.id;
+                    ubahTeksElemenAman("analisa-saldo", saldoFormatted);
+                    ubahTeksElemenAman("analisa-saldo-keseluruhan", saldoFormatted);
+                    window.renderRekening();
+                }
+
+                // Fetch Data Riwayat Transaksi Finansial User via REST API Backend Vercel
+                const resRiwayat = await fetch(`https://suliwaa-backend.vercel.app/api/ambilRiwayatTransaksiAman?uid=${user.id}`);
+                const responsRiwayat = await resRiwayat.json();
+                if(responsRiwayat.success) {
+                    arrayHistoryTransaksiLokal = responsRiwayat.transactions || [];
+                    window.renderHalamanHistoryLokal();
+                }
+            } catch(err) {
+                console.warn("[FALLBACK ENABLED] - REST API Terkendala, mengaktifkan sinkronisasi database lokal Firestore SDK.");
+                // Fallback Murni dari Firestore Client SDK apabila koneksi REST Vercel terputus
+                const snapUser = await getDoc(userRef);
+                if(snapUser.exists()) {
+                    const d = snapUser.data(); cacheDataUserLokalGlobal = d;
+                    const saldoFormatted = (d.saldo || 0).toLocaleString();
+                    document.getElementById("balance-value").innerText = saldoFormatted;
+                    ubahTeksElemenAman("analisa-saldo", saldoFormatted);
+                    ubahTeksElemenAman("analisa-saldo-keseluruhan", saldoFormatted);
+                    window.renderRekening();
+                }
+                
+                const qTrx = query(collection(db, "users", user.id.toString(), "transactions"), orderBy("timestamp", "desc"), limit(50));
+                const snapTrx = await getDocs(qTrx);
+                arrayHistoryTransaksiLokal = [];
+                snapTrx.forEach(docTrx => {
+                    const tData = docTrx.data();
+                    const jsDate = tData.timestamp?.toDate() || new Date();
+                    arrayHistoryTransaksiLokal.push({
+                        id: docTrx.id,
+                        type: tData.type || "Klaim",
+                        amount: tData.amount || 0,
+                        status: tData.status || "SUCCESS",
+                        date: jsDate.toLocaleDateString('id-ID'),
+                        time: jsDate.toLocaleTimeString('id-ID')
+                    });
+                });
+                window.renderHalamanHistoryLokal();
+            }
+        };
+
+        window.renderHalamanHistoryLokal = () => {
+            const root = document.getElementById("history-list");
+            if (!root) return;
+            if (!arrayHistoryTransaksiLokal || arrayHistoryTransaksiLokal.length === 0) {
+                root.innerHTML = `<p style="text-align:center; color:#666; font-size:12px; padding:20px;">Belum ada riwayat transaksi.</p>`;
+                return;
+            }
+
+            const filterType = document.getElementById("input-filter-history")?.value || "ALL";
+            arrayHistoryTransaksiTerfilter = arrayHistoryTransaksiLokal.filter(tx => {
+                if (filterType === "ALL") return true;
+                if (filterType === "VIDEO" && tx.type.toLowerCase().includes("iklan")) return true;
+                if (filterType === "SURFING" && tx.type.toLowerCase().includes("jelajah")) return true;
+                if (filterType === "WITHDRAW" && tx.type.toLowerCase().includes("withdraw")) return true;
+                if (filterType === "ADMIN" && tx.type.toLowerCase().includes("admin")) return true;
+                return false;
+            });
+
+            const totalData = arrayHistoryTransaksiTerfilter.length;
+            const totalHalaman = Math.ceil(totalData / barisPerHalamanHistory) || 1;
+            
+            if (halamanHistorySaatIni > totalHalaman) halamanHistorySaatIni = totalHalaman;
+            if (halamanHistorySaatIni < 1) halamanHistorySaatIni = 1;
+
+            ubahTeksElemenAman("txt-page-indicator", `Halaman ${halamanHistorySaatIni} / ${totalHalaman}`);
+            
+            const btnPrev = document.getElementById("btn-prev-page");
+            const btnNext = document.getElementById("btn-next-page");
+            if (btnPrev) btnPrev.disabled = (halamanHistorySaatIni === 1);
+            if (btnNext) btnNext.disabled = (halamanHistorySaatIni === totalHalaman);
+
+            const indexMulai = (halamanHistorySaatIni - 1) * barisPerHalamanHistory;
+            const indexSelesai = indexMulai + barisPerHalamanHistory;
+            const dataHalamanIni = arrayHistoryTransaksiTerfilter.slice(indexMulai, indexSelesai);
+
+            if (dataHalamanIni.length === 0) {
+                root.innerHTML = `<p style="text-align:center; color:#666; font-size:12px; padding:20px;">Tidak ada data yang cocok.</p>`;
+                return;
+            }
+
+            let htmlBuildup = "";
+            dataHalamanIni.forEach(tx => {
+                let statusClass = "trx-status-success";
+                if (tx.status?.toLowerCase() === "pending") statusClass = "trx-status-pending";
+                if (tx.status?.toLowerCase() === "failed") statusClass = "trx-status-failed";
+
+                const isMinus = tx.amount < 0;
+                const displayAmount = (isMinus ? "" : "+") + tx.amount.toLocaleString();
+                const colorAmount = isMinus ? "var(--danger)" : "var(--bg-utama)";
+                const transactionHashId = tx.id || "TX-" + Math.random().toString(36).substring(2, 12).toUpperCase();
+
+                htmlBuildup += `
+                    <div class="trx-item" onclick="window.salinHashIdTransaksiKeClipboard('${transactionHashId}')">
+                        <div class="trx-details">
+                            <p class="trx-title">${tx.type}</p>
+                            <p class="trx-date">${tx.date} - ${tx.time}</p>
+                            <span class="hash-id-text">📋 Salin ID: ${transactionHashId}</span>
+                        </div>
+                        <div class="trx-right-side">
+                            <p class="trx-amount" style="color: ${colorAmount}">🪙 ${displayAmount}</p>
+                            <span class="trx-status-badge ${statusClass}">${tx.status}</span>
+                        </div>
+                    </div>`;
+            });
+            root.innerHTML = htmlBuildup;
+            window.kalkulasiUlangGrafikBatangProfil(arrayHistoryTransaksiLokal);
+        };
+
+        window.gantiHalamanHistory = (arah) => {
+            halamanHistorySaatIni += arah;
+            window.renderHalamanHistoryLokal();
+        };
+
+        window.eksekusiPemicuFilterHistoryLokal = () => {
+            halamanHistorySaatIni = 1;
+            window.renderHalamanHistoryLokal();
+        };
+
+        window.bukaPopUpReferral = () => {
+            const popup = document.getElementById("pop-up-referral");
+            if(popup) popup.style.display = "flex";
+            const urlField = document.getElementById("txt-user-referral-url-field");
+            if (urlField && user && user.id) {
+                urlField.value = `https://t.me/suliwaapp_bot?start=ref_${user.id}`;
+            }
+            window.sinkronisasiTampilanInfoReferralUser();
+        };
+
+        window.sinkronisasiTampilanInfoReferralUser = () => {
+            const noticeBox = document.getElementById("user-referral-incentive-notice-box");
+            const linkBlock = document.getElementById("container-user-link-referral-block");
+            if (!noticeBox) return;
+
+            const lang = localStorage.getItem("suliwaa_lang") || "ID";
+
+            if (currentSystemConfigData.referral_system_status === "Nonaktif") {
+                if(linkBlock) linkBlock.style.display = "none";
+                if (lang === "ID") {
+                    noticeBox.innerHTML = `<strong>⚠️ SISTEM REFERRAL NONAKTIF:</strong><br>Maaf, program referral aliansi saat ini sedang dinonaktifkan sementara oleh server pusat.`;
+                } else {
+                    noticeBox.innerHTML = `<strong>⚠️ REFERRAL SYSTEM DISABLED:</strong><br>We apologize, the alliance network referral system is currently paused by central hub.`;
+                }
+                noticeBox.style.border = "1px solid var(--danger)";
+                noticeBox.style.background = "#0f0202";
+                noticeBox.style.color = "var(--danger)";
+                noticeBox.style.display = "block";
+            } else {
+                if(linkBlock) linkBlock.style.display = "block";
+                const rewardReg = currentSystemConfigData.reward_referral_register || 0;
+                const bonusPct = currentSystemConfigData.persentase_bonus_aktivitas || 0;
+                
+                if (lang === "ID") {
+                    noticeBox.innerHTML = `<strong>🎉 BONUS ALIANSI AKTIF:</strong><br>Bawa teman baru bergabung dan dapatkan bonus langsung 🪙 <b>${rewardReg} Koin</b> saat registrasi, ditambah komisi pasif sebesar <b>${bonusPct}%</b> dari akumulasi koin aktivitas mereka!`;
+                } else {
+                    noticeBox.innerHTML = `<strong>🎉 AFFILIATE TEAM BONUS ACTIVE:</strong><br>Invite new alliance members to receive an immediate sign-up reward of 🪙 <b>${rewardReg} Tokens</b>, plus a <b>${bonusPct}%</b> recurring active commission from their validated tasks!`;
+                }
+                noticeBox.style.border = "1px solid var(--success)";
+                noticeBox.style.background = "#070d02";
+                noticeBox.style.color = "#ccc";
+                noticeBox.style.display = "block";
+            }
+        };
+
+        window.tutupPopUpReferral = () => {
+            const popup = document.getElementById("pop-up-referral");
+            if(popup) popup.style.display = "none";
+        };
+
+        window.salinLinkReferralKeClipboard = () => {
+            const urlField = document.getElementById("txt-user-referral-url-field");
+            if (urlField && urlField.value) {
+                navigator.clipboard.writeText(urlField.value);
+                tg.showAlert("✅ Tautan referral sukses disalin!");
+            }
+        };
+
+        window.adminCariUserFirestore = async () => {
+            const inputUid = document.getElementById("adm-search-uid")?.value.trim();
+            if(!inputUid) return tg.showAlert("❌ Masukkan UID target!");
+
+            const rootUserBox = document.getElementById("adm-container-hasil-user");
+            try {
+                const responseRaw = await fetch(`https://suliwaa-backend.vercel.app/api/ambilDataProfilUserAman?uid=${inputUid}`);
+                const responsProfil = await responseRaw.json();
+
+                if(!responsProfil.success || !responsProfil.user_data) {
+                    if(rootUserBox) rootUserBox.style.display = "none";
+                    return tg.showAlert("❌ Pengguna tidak ditemukan di database!");
+                }
+
+                const d = responsProfil.user_data;
+                targetUserTerpilihUid = inputUid;
+                
+                document.getElementById("adm-txt-nama").innerText = "@" + (d.username || "Anonymous");
+                document.getElementById("adm-txt-saldo").innerText = (d.saldo || 0).toLocaleString();
+                document.getElementById("adm-txt-total-aktivitas-user").innerText = d.total_aktivitas || 0;
+                document.getElementById("adm-txt-jabatan").innerText = d.role || "User";
+                
+                if(rootUserBox) rootUserBox.style.display = "block";
+                tg.showAlert("✅ Profil target berhasil disinkronkan melalui Secure Gateway.");
+            } catch (err) { 
+                tg.showAlert("Gagal memuat: " + err.message); 
+            }
+        };
+
+        window.adminResetSaldoKeseluruhanUser = async () => {
+            if(!targetUserTerpilihUid) return;
+            if(!confirm("Apakah Anda yakin ingin menghapus seluruh saldo pengguna ini?")) return;
+            try {
+                const docTargetRef = doc(db, "users", targetUserTerpilihUid);
+                const snap = await getDoc(docTargetRef);
+                if(!snap.exists()) throw new Error("User corrupt");
+
+                await updateDoc(docTargetRef, { saldo: 0 });
+                tg.showAlert("✅ Saldo berhasil di-nol-kan.");
+                window.adminCariUserFirestore();
+            } catch(e) { tg.showAlert("Error: " + e.message); }
+        };
+
+        window.adminEksekusiKoreksiSaldo = async (isAdd) => {
+            if(window.isAdminProcessing) return;
+            if(!targetUserTerpilihUid) return;
+            
+            const inputNominal = parseInt(document.getElementById("adm-input-nominal-koreksi").value);
+            if(isNaN(inputNominal) || inputNominal <= 0) return tg.showAlert("❌ Nominal angka tidak valid!");
+            
+            window.isAdminProcessing = true;
+            try {
+                const targetRef = doc(db, "users", targetUserTerpilihUid);
+                await runTransaction(db, async (tx) => {
+                    const snap = await tx.get(targetRef);
+                    if(!snap.exists()) throw new Error("User tidak ditemukan");
+                    const oldBal = snap.data().saldo || 0;
+                    const change = isAdd ? inputNominal : -inputNominal;
+                    const newBal = oldBal + change;
+                    if(newBal < 0) throw new Error("Saldo tidak boleh minus");
+                    
+                    tx.update(targetRef, { saldo: newBal });
+                    const logRef = doc(collection(db, "admin_logs"));
+                    tx.set(logRef, { admin_uid: user.id.toString(), target_uid: targetUserTerpilihUid, action: isAdd?"ADD":"MINUS", old_balance: oldBal, new_balance: newBal, timestamp: serverTimestamp(), nominal: inputNominal, reason: "Koreksi Manual" });
+                });
+                tg.showAlert("✅ Koreksi berhasil diaplikasikan!");
+                window.adminCariUserFirestore();
+            } catch(e) { tg.showAlert("❌ Gagal: " + e.message); }
+            finally { window.isAdminProcessing = false; }
+        };
+
+        window.adminToggleStatusBlokir = async () => {
+            if(!targetUserTerpilihUid) return;
+            try {
+                const targetRef = doc(db, "users", targetUserTerpilihUid);
+                const snap = await getDoc(targetRef);
+                const isBlocked = snap.data().is_blocked || false;
+                await updateDoc(targetRef, { is_blocked: !isBlocked });
+                tg.showAlert(`✅ Akun berhasil ${!isBlocked ? 'diblokir' : 'dibuka'}.`);
+            } catch(e) { tg.showAlert(e.message); }
+        };
+
+        window.adminSimpanJabatanOwner = async () => {
+            if(!targetUserTerpilihUid) return;
+            const role = document.getElementById("adm-select-role").value;
+            try {
+                await updateDoc(doc(db, "users", targetUserTerpilihUid), { role: role });
+                tg.showAlert("✅ Jabatan tersimpan.");
+            } catch(e) { tg.showAlert(e.message); }
+        };
+
+        window.adminToggleFreezeWallet = async () => {
+            if(!targetUserTerpilihUid) return;
+            try {
+                const targetRef = doc(db, "users", targetUserTerpilihUid);
+                const snap = await getDoc(targetRef);
+                const isFrozen = snap.data().wallet_frozen || false;
+                await updateDoc(targetRef, { wallet_frozen: !isFrozen });
+                tg.showAlert(`✅ Penarikan Wallet berhasil ${!isFrozen ? 'dibekukan' : 'dibuka'}.`);
+            } catch(e) { tg.showAlert(e.message); }
+        };
+
+        window.adminTambahSlotIklanBaru = () => {
+            const idBaru = "ad_" + Date.now();
+            localAdsPoolArray.push({ 
+                id: idBaru, 
+                name: "Slot " + (localAdsPoolArray.length + 1), 
+                reward: 20, 
+                cooldown: 30, 
+                max_views: 0, 
+                remaining_views: 0,
+                network_provider: "custom",
+                url_direct_link: "https://",
+                network_timeout: 3,
+                zone_id: "",       
+                sdk_trigger: ""    
+            });
+            window.renderAdminDynamicAdsForm();
+        };
+
+        window.adminHapusSlotIklanBaru = (index) => {
+            localAdsPoolArray.splice(index, 1);
+            window.renderAdminDynamicAdsForm();
+        };
+
+        window.adminTambahSlotSurfingBaru = () => {
+            const idBaru = "surf_" + Date.now();
+            localSurfingPoolArray.push({ id: idBaru, name: "Misi Surfing " + (localSurfingPoolArray.length + 1), reward: 15, duration: 20, max_views: 0, remaining_views: 0, url: "https://" });
+            window.renderAdminSurfingAdsForm();
+        };
+
+        window.adminHapusSlotSurfingByIndex = (index) => {
+            localSurfingPoolArray.splice(index, 1);
+            window.renderAdminSurfingAdsForm();
+        };
+
+        window.adminTambahSlotBankBaru = () => {
+            localBanksPoolArray.push({ name: "E-Wallet Baru", status: "Normal" });
+            window.renderAdminBanksForm();
+        };
+
+        window.adminHapusSlotBankByIndex = (index) => {
+            localBanksPoolArray.splice(index, 1);
+            window.renderAdminBanksForm();
+        };
+
+        window.updateLocalAdField = (index, field, value) => { 
+            if (field === 'reward' || field === 'cooldown' || field === 'network_timeout') {
+                localAdsPoolArray[index][field] = parseInt(value) || 0;
+            } else {
+                localAdsPoolArray[index][field] = value;
+            }
+        };
+
+        window.updateLocalSurfingField = (index, field, value) => { localSurfingPoolArray[index][field] = (field === 'reward' || field === 'duration') ? parseInt(value) || 0 : value; };
+        window.updateLocalBankField = (index, field, value) => { localBanksPoolArray[index][field] = value; };
+
+        window.handleAdminChangeMaxViewsVideo = (index, val) => { 
+            let v = parseInt(val) || 0; localAdsPoolArray[index].max_views = v; localAdsPoolArray[index].remaining_views = v; 
+        };
+
+        window.handleAdminChangeMaxViewsField = (index, val) => { 
+            let v = parseInt(val) || 0; localSurfingPoolArray[index].max_views = v; localSurfingPoolArray[index].remaining_views = v; 
+        };
+
+        window.gantiBahasaAplikasiEngine = (langTarget) => {
+            localStorage.setItem("suliwaa_lang", langTarget);
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.getElementById(`btn-lang-${langTarget.toLowerCase()}`);
+            if(activeBtn) activeBtn.className += ' active';
+
+            const mapBahasa = window.SULIWAA_LOCALIZATION_MAP;
+            if (!mapBahasa) return; 
+            
+            const k = mapBahasa[langTarget] || mapBahasa['ID'];
+            if(!k) return;
+
+            ubahTeksElemenAman("txt-modal-settings-title", k.modal_title);
+            ubahTeksElemenAman("txt-modal-label-lang", k.label_lang);
+            ubahTeksElemenAman("txt-label-balance", k.label_balance);
+            ubahTeksElemenAman("txt-menu-view-ads", `${k.menu_view_ads} <span>❯</span>`, true);
+            ubahTeksElemenAman("txt-heading-surfing", k.heading_surfing);
+            ubahTeksElemenAman("txt-qsurf-countdown-prefix", k.qsurf_prefix);
+            ubahTeksElemenAman("txt-heading-history", k.heading_history);
+            ubahTeksElemenAman("txt-label-filter-history", k.label_filter_history);
+            ubahTeksElemenAman("opt-filter-all", k.filter_all);
+            ubahTeksElemenAman("opt-filter-video", k.filter_video);
+            ubahTeksElemenAman("opt-filter-surfing", k.filter_surfing);
+            ubahTeksElemenAman("opt-filter-wd", k.filter_wd);
+            ubahTeksElemenAman("opt-filter-admin", k.filter_admin);
+            ubahTeksElemenAman("txt-heading-wallet", k.heading_wallet);
+            ubahTeksElemenAman("txt-wfreeze-prefix", k.wfreeze_prefix);
+            ubahTeksElemenAman("txt-heading-profil", k.heading_profil);
+            ubahTeksElemenAman("txt-label-dompet-utama", k.label_dompet_utama);
+            ubahTeksElemenAman("txt-label-saldo-keseluruhan", k.label_saldo_keseluruhan);
+            ubahTeksElemenAman("txt-label-bonus-reg", k.label_bonus_reg);
+            ubahTeksElemenAman("txt-label-bonus-akt", k.label_bonus_akt);
+            ubahTeksElemenAman("txt-label-akumulasi", k.label_akumulasi);
+            ubahTeksElemenAman("txt-desc-total-transaksi", k.desc_total_transaksi, true);
+            ubahTeksElemenAman("txt-label-ref-system-link", k.label_ref_system_link);
+            ubahTeksElemenAman("txt-label-analitik-penghasilan", k.label_analitik_penghasilan);
+            ubahTeksElemenAman("txt-heading-video-ads", k.heading_video_ads);
+            ubahTeksElemenAman("txt-vpenalty-countdown-prefix", k.vpenalty_prefix);
+            ubahTeksElemenAman("txt-heading-popup-ref", k.heading_popup_ref);
+            ubahTeksElemenAman("txt-label-link-invitation", k.label_link_invitation);
+            ubahTeksElemenAman("txt-heading-timer-surf", k.heading_timer_surf);
+            ubahTeksElemenAman("txt-heading-standby-video", k.heading_standby_video);
+            ubahTeksElemenAman("txt-vtitle-info", k.vtitle_info);
+            ubahTeksElemenAman("txt-video-info-card-desc", k.vdesc_info);
+
+            // Penerjemahan Atribut Panel Lokalisasi Baru v20.6.7
+            ubahTeksElemenAman("lbl-adm-circuit-breaker", k.adm_lbl_circuit_breaker);
+            ubahTeksElemenAman("lbl-adm-live-log", k.adm_lbl_live_log);
+            ubahTeksElemenAman("lbl-adm-search-uid", k.adm_lbl_search_uid);
+
+            const inputNama = document.getElementById("input-nama-rek"); if(inputNama) inputNama.placeholder = k.wallet_placeholder_name;
+            const inputRek = document.getElementById("input-rekening"); if(inputRek) inputRek.placeholder = k.wallet_placeholder_number;
+            const inputNom = document.getElementById("input-nominal"); if(inputNom) inputNom.placeholder = k.wallet_placeholder_amount;
+            
+            ubahTeksElemenAman("btn-save-wallet-rek-trigger", k.wallet_btn_save);
+            ubahTeksElemenAman("btn-submit-wd-utama", k.wallet_btn_withdraw);
+            
+            const infoRekBox = document.getElementById("info-rekening");
+            if (infoRekBox && (!localStorage.getItem("nama_rek") || !localStorage.getItem("no_rek"))) {
+                infoRekBox.innerText = k.wallet_txt_not_set;
+            }
+
+            ubahTeksElemenAman("nav-lbl-home", k.nav_home);
+            ubahTeksElemenAman("nav-lbl-surfing", k.nav_surfing);
+            ubahTeksElemenAman("nav-lbl-history", k.nav_history);
+            ubahTeksElemenAman("nav-lbl-wallet", k.nav_wallet);
+            ubahTeksElemenAman("nav-lbl-profile", k.nav_profile);
+
+            ubahTeksElemenAman("lbl-adm-announcement", k.adm_lbl_announcement);
+            ubahTeksElemenAman("lbl-adm-recovery", k.adm_lbl_recovery);
+            ubahTeksElemenAman("txt-adm-btn-captcha", k.adm_btn_captcha);
+            ubahTeksElemenAman("lbl-adm-captcha-surf", k.adm_lbl_captcha_surf);
+            ubahTeksElemenAman("lbl-adm-captcha-wallet", k.adm_lbl_captcha_wallet);
+            ubahTeksElemenAman("lbl-adm-delay-tol", k.adm_lbl_delay_tol);
+            ubahTeksElemenAman("lbl-adm-rate-limit", k.adm_lbl_rate_limit);
+            ubahTeksElemenAman("lbl-adm-check-dur", k.adm_lbl_check_dur);
+            ubahTeksElemenAman("lbl-adm-captcha-video", k.adm_lbl_captcha_video);
+            ubahTeksElemenAman("txt-adm-btn-ads", k.adm_btn_ads);
+            ubahTeksElemenAman("btn-adm-add-video", k.adm_btn_add_video);
+            ubahTeksElemenAman("txt-adm-btn-surf", k.adm_btn_surf);
+            ubahTeksElemenAman("lbl-adm-surf-penalty", k.adm_lbl_surf_penalty);
+            ubahTeksElemenAman("btn-adm-add-surf", k.adm_btn_add_surf);
+            ubahTeksElemenAman("txt-adm-btn-bank", k.adm_btn_bank);
+            ubahTeksElemenAman("lbl-adm-min-wd", k.adm_lbl_min_wd);
+            ubahTeksElemenAman("lbl-adm-max-wd", k.adm_lbl_max_wd);
+            ubahTeksElemenAman("btn-adm-add-bank", k.adm_btn_add_bank);
+            ubahTeksElemenAman("txt-adm-btn-ref", k.adm_btn_ref);
+            ubahTeksElemenAman("txt-adm-ref-title", k.adm_ref_title);
+            ubahTeksElemenAman("txt-adm-ref-status-lbl", k.adm_ref_status_lbl);
+            ubahTeksElemenAman("lbl-adm-ref-reg", k.adm_lbl_ref_reg);
+            ubahTeksElemenAman("lbl-adm-ref-pct", k.adm_lbl_ref_pct);
+            ubahTeksElemenAman("lbl-adm-ref-thrs", k.adm_lbl_ref_thrs);
+            ubahTeksElemenAman("btn-adm-save-config", k.adm_btn_save_config);
+            ubahTeksElemenAman("btn-adm-reset-saldo", k.adm_btn_reset_saldo);
+            ubahTeksElemenAman("lbl-adm-rbac-title", k.adm_lbl_rbac_title);
+            ubahTeksElemenAman("txt-p-koreksi", k.adm_txt_p_koreksi);
+            ubahTeksElemenAman("txt-p-blokir", k.adm_txt_p_blokir);
+            ubahTeksElemenAman("txt-p-validasi", k.adm_txt_p_validasi);
+            ubahTeksElemenAman("btn-adm-save-role", k.adm_btn_save_role);
+            ubahTeksElemenAman("lbl-adm-target-history", k.adm_lbl_target_history);
+
+            const titlePanel = document.getElementById("adm-title-panel");
+            if(titlePanel) {
+                if(myCurrentRole === "Owner" || user.id.toString() === "6752317840") { titlePanel.innerText = k.adm_title_owner; } 
+                else if (myCurrentRole === "Admin") { titlePanel.innerText = k.adm_title_mod; }
+            }
+
+            const inputUidSearchPlaceholder = document.getElementById("adm-search-uid");
+            if (inputUidSearchPlaceholder) {
+                inputUidSearchPlaceholder.placeholder = langTarget === "ID" ? "Masukkan UID User Target" : "Enter Ground User UID Target";
+            }
+
+            const videoMaintSelect = document.getElementById("adm-switch-maintenance-video");
+            if (videoMaintSelect) {
+                videoMaintSelect.options[0].text = langTarget === "ID" ? "📢 Iklan: AKTIF" : "📢 Ads: ACTIVE";
+                videoMaintSelect.options[1].text = langTarget === "ID" ? "📢 Iklan: MAINTENANCE" : "📢 Ads: MAINTENANCE";
+            }
+
+            window.renderUserSurfingCards();
+            window.renderUserDynamicAdsCards();
+            window.sinkronisasikanTeksAturanWdUser();
+            window.sinkronisasiTampilanInfoReferralUser();
+            if (arrayHistoryTransaksiLokal.length > 0) window.kalkulasiUlangGrafikBatangProfil(arrayHistoryTransaksiLokal);
+        };
+
+        window.cleanupAdminSnapshotListener = () => {
+            if (unsubscribeTargetUserSnapshot) { unsubscribeTargetUserSnapshot(); unsubscribeTargetUserSnapshot = null; }
+        };
+
+        window.renderRekening = () => {
+            const bankInfo = cacheDataUserLokalGlobal?.bank_info || {};
+            const nama = bankInfo.nama || localStorage.getItem("nama_rek"); 
+            const no = bankInfo.no || localStorage.getItem("no_rek"); 
+            const bank = bankInfo.bank || localStorage.getItem("bank_rek") || "Rekening"; 
+            
+            const info = document.getElementById("info-rekening");
+            if (nama && no) { 
+                if(info) info.innerHTML = `<div>E-Wallet: <b style="color:var(--bg-utama)">${bank}</b></div><div>Nama: <b>${nama}</b></div><div style="display:flex; justify-content:space-between; align-items:center; margin-top:3px;">No: <b>${no}</b> <span id="btn-hapus-rek" style="color:var(--danger); cursor:pointer; font-weight:bold; margin-left:auto;">[Hapus]</span></div>`; 
+                setTimeout(() => { const el = document.getElementById("btn-hapus-rek"); if(el) el.onclick = window.hapusRekening; }, 50); 
+            } else { if(info) info.innerHTML = "Belum diatur"; }
+        };
+
+        window.hapusRekening = async () => {
+            if(!confirm("Hapus rekening?")) return;
+            try {
+                const responseRaw = await fetch('https://suliwaa-backend.vercel.app/api/simpanRekeningUserAman', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid: user.id, bank_info: null })
+                });
+                const resp = await responseRaw.json();
+                if(resp.success) {
+                    localStorage.removeItem("nama_rek"); localStorage.removeItem("no_rek"); localStorage.removeItem("bank_rek");
+                    tg.showAlert("✅ Rekening berhasil dihapus.");
+                    await window.jalankanRefreshStateDataProfilUserLokal();
+                } else {
+                    tg.showAlert("❌ Gagal menghapus dari cloud backend.");
+                }
+            } catch(e) { 
+                // Fallback direct write ke Firestore local client SDK apabila fetch REST gagal
+                try {
+                    await updateDoc(userRef, { bank_info: null });
+                    localStorage.removeItem("nama_rek"); localStorage.removeItem("no_rek"); localStorage.removeItem("bank_rek");
+                    tg.showAlert("✅ [LOKAL] Rekening berhasil dihapus.");
+                    await window.jalankanRefreshStateDataProfilUserLokal();
+                } catch(errFirestore) {
+                    tg.showAlert("Error: " + errFirestore.message);
+                }
+            }
+        };
+
+        window.simpanRekening = async () => {
+            const bank = document.getElementById("input-bank").value;
+            const nama = document.getElementById("input-nama-rek").value.trim();
+            const no = document.getElementById("input-rekening").value.trim();
+            
+            if(!nama || !no) return tg.showAlert("❌ Silakan isi semua form rekening!");
+
+            try {
+                const responseRaw = await fetch('https://suliwaa-backend.vercel.app/api/simpanRekeningUserAman', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid: user.id, bank_info: { bank, nama, no } })
+                });
+                const resp = await responseRaw.json();
+                if(resp.success) {
+                    localStorage.setItem("bank_rek", bank);
+                    localStorage.setItem("nama_rek", nama);
+                    localStorage.setItem("no_rek", no);
+                    tg.showAlert("✅ Rekening berhasil disimpan.");
+                    await window.jalankanRefreshStateDataProfilUserLokal();
+                } else {
+                    tg.showAlert("❌ Gagal menyimpan ke cloud backend: " + resp.message);
+                }
+            } catch(e) { 
+                // Fallback write ke Firestore local client SDK apabila Vercel offline
+                try {
+                    await updateDoc(userRef, { bank_info: { bank, nama, no } });
+                    localStorage.setItem("bank_rek", bank);
+                    localStorage.setItem("nama_rek", nama);
+                    localStorage.setItem("no_rek", no);
+                    tg.showAlert("✅ [LOKAL] Rekening berhasil disimpan.");
+                    await window.jalankanRefreshStateDataProfilUserLokal();
+                } catch(errFirestore) {
+                    tg.showAlert("❌ Jaringan & DB Firestore terproteksi: " + errFirestore.message);
+                }
+            }
+        };
+
+        const bannerJaringan = document.getElementById("network-status");
+        window.addEventListener("offline", () => { if(bannerJaringan) bannerJaringan.className = "show-offline"; });
+        window.addEventListener("online", () => { if(bannerJaringan) { bannerJaringan.className = "show-online"; setTimeout(() => { bannerJaringan.className = ""; }, 2500); } });
+
+        window.salinHashIdTransaksiKeClipboard = (txId) => {
+            navigator.clipboard.writeText(txId); tg.showAlert(`✅ ID Transaksi Berhasil Disalin:\n"${txId}"`);
+        };
+
+        window.inisialisasiSesiMultiDeviceUser = async (userId, uRef) => {
+            const stringSesiAcak = "sess_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+            localStorage.setItem("suliwaa_current_session", stringSesiAcak);
+            try { await updateDoc(uRef, { active_session_token: stringSesiAcak }); } catch(e) { console.warn(e); }
+        };
+
+        window.jalankanValidasiKeamananSuliwaaApp = async () => {
+            try {
+                const snapUser = await getDoc(userRef);
+                if (!snapUser.exists()) return { lulus: false, alasan: "User tidak ditemukan" };
+                const dataUser = snapUser.data();
+                
+                const tokenLokal = localStorage.getItem("suliwaa_current_session");
+                const tokenFirestore = dataUser.active_session_token;
+                if (tokenLokal !== tokenFirestore) return { lulus: false, alasan: "MULTI_DEVICE_DETECTED" };
+
+                const responsIp = await fetch("https://ipapi.co/json/");
+                if (responsIp.ok) {
+                    const dataIp = await responsIp.json();
+                    if (dataIp.security && (dataIp.security.is_proxy === true || dataIp.security.is_vpn === true)) {
+                        return { lulus: false, alasan: "VPN_OR_PROXY_DETECTED" };
+                    }
+
+                    const waktuSekarang = Date.now();
+                    let logKlikLokal = JSON.parse(localStorage.getItem("suliwaa_ip_click_log") || "[]");
+                    
+                    const durasiMenitPanel = currentSystemConfigData.ip_check_duration !== undefined ? currentSystemConfigData.ip_check_duration : 3;
+                    const batasKlikPanel = currentSystemConfigData.ip_max_clicks !== undefined ? currentSystemConfigData.ip_max_clicks : 8;
+                    const konversiMilidetik = durasiMenitPanel * 60 * 1000;
+                    
+                    logKlikLokal = logKlikLokal.filter(t => (waktuSekarang - t) < konversiMilidetik);
+                    if (logKlikLokal.length >= batasKlikPanel) return { lulus: false, alasan: "IP_RATE_LIMIT_EXCEEDED" };
+                    
+                    logKlikLokal.push(waktuSekarang);
+                    localStorage.setItem("suliwaa_ip_click_log", JSON.stringify(logKlikLokal));
+                }
+            } catch (err) { console.warn("Internal security shield bypassed."); }
+            return { lulus: true, alasan: "STERIL" };
+        };
+
+        const buildAdminSlotRenderer = (targetContainerId, poolArray, templateBuilderFunc) => {
+            const root = document.getElementById(targetContainerId); if (!root) return; root.innerHTML = "";
+            if (poolArray.length === 0) { root.innerHTML = `<p style="text-align:center; color:#666; font-size:12px;">Pool kosong.</p>`; return; }
+            let htmlBuild = "";
+            poolArray.forEach((item, index) => { htmlBuild += templateBuilderFunc(item, index); });
+            root.innerHTML = htmlBuild;
+        };
+
+        window.renderAdminBanksForm = () => {
+            buildAdminSlotRenderer("adm-dynamic-banks-list-root", localBanksPoolArray, (bank, index) => `
+                <div class="adm-ad-slot-card" id="bank-slot-index-${index}" style="border: 1px solid #1a1a3a; background: #020214;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #11113a; padding-bottom:6px;">
+                        <input type="text" value="${bank.name || ''}" onchange="window.updateLocalBankField(${index}, 'name', this.value)" style="background:transparent; border:none; border-bottom:1px dashed var(--bg-utama); color:var(--bg-utama); font-weight:bold; font-size:13px; outline:none; width:60%;">
+                        <button onclick="window.adminHapusSlotBankByIndex(${index})" style="background:var(--danger); color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;">🗑️ Hapus</button>
+                    </div>
+                    <div>
+                        <select onchange="window.updateLocalBankField(${index}, 'status', this.value)" class="input-dark" style="margin-top:4px; padding:6px; font-size:12px;">
+                            <option value="Normal" ${bank.status === 'Normal' ? 'selected' : ''}>Normal / Lancar Jaya</option>
+                            <option value="Gangguan" ${bank.status === 'Gangguan' ? 'selected' : ''}>Gangguan Server</option>
+                        </select>
+                    </div>
+                </div>`);
+        };
+
+        window.renderAdminSurfingAdsForm = () => {
+            buildAdminSlotRenderer("adm-dynamic-surfing-list-root", localSurfingPoolArray, (surf, index) => {
+                let sisaText = surf.max_views > 0 ? `${surf.remaining_views !== undefined ? surf.remaining_views : surf.max_views} Kali` : "Bebas";
+                return `
+                <div class="adm-ad-slot-card" id="surf-card-index-${index}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #112c02; padding-bottom:6px;">
+                        <input type="text" value="${surf.name || ''}" onchange="window.updateLocalSurfingField(${index}, 'name', this.value)" style="background:transparent; border:none; border-bottom:1px dashed var(--bg-utama); color:var(--bg-utama); font-weight:bold; font-size:13px; outline:none; width:55%;">
+                        <span style="font-size:10px; font-weight:bold; background:#222; padding:3px 6px; border-radius:6px; color:#ffaa00;">📊 Sisa: ${sisaText}</span>
+                        <button onclick="window.adminHapusSlotSurfingByIndex(${index})" style="background:var(--danger); color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;">🗑️ Hapus</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom:8px;">
+                        <div><label style="font-size: 9px; color: #aaa;">Koin: </label><input type="number" value="${surf.reward || 0}" onchange="window.updateLocalSurfingField(${index}, 'reward', parseInt(this.value))" class="input-dark" style="padding: 6px 2px; text-align:center; font-size:12px;"></div>
+                        <div><label style="font-size: 9px; color: #aaa;">Timer (s): </label><input type="number" value="${surf.duration || 0}" onchange="window.updateLocalSurfingField(${index}, 'duration', parseInt(this.value))" class="input-dark" style="padding: 6px 2px; text-align:center; font-size:12px;"></div>
+                        <div><label style="font-size: 9px; color: #ffaa00; font-weight:bold;">Maks/Hari:</label><input type="number" value="${surf.max_views || 0}" onchange="window.handleAdminChangeMaxViewsField(${index}, this.value)" class="input-dark" style="padding: 6px 2px; text-align:center; font-size:12px; border: 1px solid #ffaa00;"></div>
+                    </div>
+                    <div>
+                        <input type="text" value="${surf.url || ''}" onchange="window.updateLocalSurfingField(${index}, 'url', this.value)" class="input-dark" style="padding:8px; font-size:11px;" placeholder="https://example.com">
+                    </div>
+                </div>`;
+            });
+        };
+
+        window.renderAdminDynamicAdsForm = () => {
+            buildAdminSlotRenderer("adm-dynamic-ads-list-root", localAdsPoolArray, (ad, index) => {
+                let sisaText = ad.max_views > 0 ? `${ad.remaining_views !== undefined ? ad.remaining_views : ad.max_views} Klik` : "Bebas";
+                return `
+                <div class="adm-ad-slot-card" id="ad-card-index-${index}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #3a1111; padding-bottom:6px;">
+                        <input type="text" value="${ad.name || ''}" onchange="window.updateLocalAdField(${index}, 'name', this.value)" style="background:transparent; border:none; border-bottom:1px dashed var(--bg-utama); color:var(--bg-utama); font-weight:bold; font-size:13px; outline:none; width:50%;">
+                        <span style="font-size:10px; font-weight:bold; background:#222; padding:3px 6px; border-radius:6px; color:#ffaa00;">📊 Sisa: ${sisaText}</span>
+                        <button onclick="window.adminHapusSlotIklanBaru(${index})" style="background:var(--danger); color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;">🗑️ Hapus</button>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom:10px;">
+                        <div><label style="font-size: 8px; color: #aaa;">Koin: </label><input type="number" value="${ad.reward || 0}" onchange="window.updateLocalAdField(${index}, 'reward', this.value)" class="input-dark" style="padding: 6px 2px; text-align:center; font-size:11px;"></div>
+                        <div><label style="font-size: 8px; color: #aaa;">Tunggu CD: </label><input type="number" value="${ad.cooldown || 0}" onchange="window.updateLocalAdField(${index}, 'cooldown', this.value)" class="input-dark" style="padding: 6px 2px; text-align:center; font-size:11px;"></div>
+                        <div><label style="font-size: 8px; color: #ffaa00; font-weight:bold;">Kuota/Hari:</label><input type="number" value="${ad.max_views || 0}" onchange="window.handleAdminChangeMaxViewsVideo(${index}, this.value)" class="input-dark" style="padding: 6px 2px; text-align:center; font-size:11px; border:1px solid #ffaa00;"></div>
+                        <div><label style="font-size: 8px; color: #ff4d4d; font-weight:bold;">Timeout (s):</label><input type="number" value="${ad.network_timeout || 3}" onchange="window.updateLocalAdField(${index}, 'network_timeout', this.value)" class="input-dark" style="padding: 6px 2px; text-align:center; font-size:11px; border:1px solid #ff4d4d;"></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin-bottom: 8px;">
+                        <div>
+                            <select onchange="window.updateLocalAdField(${index}, 'network_provider', this.value)" class="input-dark" style="padding:8px; font-size:11px; background:#000;">
+                                <option value="custom" ${ad.network_provider === 'custom' ? 'selected' : ''}>Direct Link</option>
+                                <option value="monetag" ${ad.network_provider === 'monetag' ? 'selected' : ''}>Monetag SDK</option>
+                                <option value="adsterra" ${ad.network_provider === 'adsterra' ? 'selected' : ''}>Adsterra SDK</option>
+                            </select>
+                        </div>
+                        <div>
+                            <input type="text" value="${ad.url_direct_link || ''}" onchange="window.updateLocalAdField(${index}, 'url_direct_link', this.value)" class="input-dark" style="padding:8px; font-size:11px;" placeholder="URL Script: https://...">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <label style="font-size: 9px; color: #aaa;">Zone ID / Data Zone:</label>
+                            <input type="text" value="${ad.zone_id || ''}" onchange="window.updateLocalAdField(${index}, 'zone_id', this.value)" class="input-dark" style="padding:6px; font-size:11px;" placeholder="Contoh: 11230680">
+                        </div>
+                        <div>
+                            <label style="font-size: 9px; color: #aaa;">SDK Function / Element:</label>
+                            <input type="text" value="${ad.sdk_trigger || ''}" onchange="window.updateLocalAdField(${index}, 'sdk_trigger', this.value)" class="input-dark" style="padding:6px; font-size:11px;" placeholder="Contoh: show_11230680">
+                        </div>
+                    </div>
+                </div>`;
+            });
+        };
+
+        window.renderUserBanksDropdown = () => {
+            const selectBox = document.getElementById("input-bank"); if(!selectBox) return; selectBox.innerHTML = "";
+            if(localBanksPoolArray.length === 0) { selectBox.innerHTML = `<option value="">-- Tidak Ada Pembayaran --</option>`; return; }
+            localBanksPoolArray.forEach(bank => { selectBox.innerHTML += `<option value="${bank.name}">${bank.name}${bank.status === "Gangguan" ? " [⚠️ GANGGUAN]" : ""}</option>`; });
+        };
+
+        window.renderUserSurfingCards = () => {
+            const root = document.getElementById("user-dynamic-surfing-cards-root"); if(!root) return;
+            const quarantineNotice = document.getElementById("user-global-quarantine-notice");
+            const lang = localStorage.getItem("suliwaa_lang") || "ID";
+
+            if (currentSystemConfigData.maintenance_surfing === "Tutup") {
+                root.innerHTML = `<div class="card" style="text-align:center; padding:45px 20px; border: 2px solid var(--danger); background:#0a0000;"><h4 style="margin:0; color:var(--danger); font-size:14px;">⚠️ Server Maintenance</h4><p style="margin:8px 0 0 0; font-size:11px; color:#aaa;">${lang === "ID" ? "Misi jelajah dihentikan sementara oleh Admin." : "Web Surfing missions have been paused temporarily by Admin."}</p></div>`;
+                return;
+            }
+            
+            let statusKarantinaGlobalTimestamp = parseInt(localStorage.getItem("global_surfing_quarantine_expiry") || "0");
+            let sisaWaktuKarantinaNyata = statusKarantinaGlobalTimestamp - Date.now();
+
+            if (sisaWaktuKarantinaNyata > 0) {
+                if(quarantineNotice) quarantineNotice.style.display = "block";
+                const elCtd = document.getElementById("txt-quarantine-countdown"); if(elCtd) elCtd.innerText = `${Math.ceil(sisaWaktuKarantinaNyata / 1000)}s`;
+                root.innerHTML = `<div class="card" style="text-align:center; padding:35px 20px; border:1px solid #330000; background:#070000;"><p style="margin:0; font-size:11px; color:#888888;">Misi dikunci.</p></div>`; return;
+            } else { if(quarantineNotice) quarantineNotice.style.display = "none"; }
+
+            if (!localSurfingPoolArray || localSurfingPoolArray.length === 0) {
+                root.innerHTML = `<div class="card" style="text-align:center; padding:45px 20px; border: 1px dashed var(--warning); background:#0a0000;"><h4 style="margin:0; color:var(--warning); font-size:14px;">Misi Kosong</h4><p style="margin:8px 0 0 0; font-size:11px; color:#aaa;">Belum ada daftar link jelajah aktif dari admin.</p></div>`;
+                return;
+            }
+
+            let targetMisiTersediaTerhitung = 0; let stringCardTemplatesHtmlAccumulator = "";
+            for (let surf of localSurfingPoolArray) {
+                if (surf.max_views > 0 && surf.remaining_views !== undefined && surf.remaining_views <= 0) continue;
+                targetMisiTersediaTerhitung++;
+                const labelBtn = lang === "ID" ? `Mulai Jelajah (${surf.duration}s) ❯` : `Start Surfing (${surf.duration}s) ❯`;
+                stringCardTemplatesHtmlAccumulator += `
+                    <div id="card-surf-${surf.id}" class="ad-card-container" onclick="window.mulaiMisiSurfingUserEngine('${surf.id}')" style="border:1px solid #1e3d04; background:#020a00;">
+                        <div class="ad-card-main">
+                            <span>🌐 ${surf.name} (Reward: 🪙${surf.reward})</span>
+                            <span style="font-weight:bold; color:var(--bg-utama)">${labelBtn}</span>
+                        </div>
+                    </div>`;
+            }
+
+            if (targetMisiTersediaTerhitung === 0) {
+                root.innerHTML = `<div class="card" style="text-align:center; padding:45px 20px; border: 1px dashed var(--danger); background:#0a0000;"><h4 style="margin:0; color:var(--danger); font-size:14px;">Tugas Belum Tersedia!</h4></div>`;
+            } else { root.innerHTML = stringCardTemplatesHtmlAccumulator; }
+        };
+
+        window.mulaiMisiSurfingUserEngine = async (surfId) => {
+            let statusKarantinaGlobalTimestamp = parseInt(localStorage.getItem("global_surfing_quarantine_expiry") || "0");
+            if (statusKarantinaGlobalTimestamp - Date.now() > 0) return tg.showAlert("❌ Akses masih diblokir!");
+            if(isAnyAdPlayingGlobal) return tg.showAlert("❌ Selesaikan pekerjaan iklan!"); 
+
+            const gerbangPusat = await window.jalankanValidasiKeamananSuliwaaApp();
+            if(!gerbangPusat.lulus) return;
+
+            const surfConfig = localSurfingPoolArray.find(s => s.id === surfId); if(!surfConfig) return;
+
+            try { await updateDoc(userRef, { last_task_started_at: serverTimestamp() }); } catch(e){}
+
+            surfingActiveIdTerpilih = surfId; surfingDetikBerjalanLokal = 0; surfingTargetDetikDurasi = surfConfig.duration;
+
+            document.getElementById("container-math-captcha-block").style.display = "none";
+            document.getElementById("input-captcha-answer").value = "";
+
+            tg.openLink(surfConfig.url); document.getElementById("pop-up-timer-surfing").style.display = "flex";
+
+            const clockEl = document.getElementById("txt-countdown-surfing-clock"); if(clockEl) { clockEl.innerText = `${surfingTargetDetikDurasi}s`; clockEl.style.color = "var(--danger)"; }
+
+            if(surfingTimerIntervalLokal) clearInterval(surfingTimerIntervalLokal);
+            surfingTimerIntervalLokal = setInterval(() => {
+                surfingDetikBerjalanLokal++; let sisaWaktuDetik = surfingTargetDetikDurasi - surfingDetikBerjalanLokal;
+                if(sisaWaktuDetik <= 0) { 
+                    clearInterval(surfingTimerIntervalLokal); if(clockEl) { clockEl.innerText = "Selesai!"; clockEl.style.color = "var(--success)"; }
+                    if (currentSystemConfigData.captcha_surf_status === "Aktif") window.generateDynamicMathCaptchaModule();
+                } else { if(clockEl) clockEl.innerText = `${sisaWaktuDetik}s`; }
+            }, 1000);
+        };
+
+        window.generateDynamicMathCaptchaModule = () => {
+            const numA = Math.floor(Math.random() * 9) + 2; const numB = Math.floor(Math.random() * 8) + 2;
+            captchaJawabanBenarLokal = numA + numB;
+            document.getElementById("txt-captcha-math-question").innerText = `${numA} + ${numB} = ?`;
+            document.getElementById("container-math-captcha-block").style.display = "block";
+        };
+
+        window.eksekusiValidasiKlaimSurfing = async () => {
+            if (window.isClaimingSurfing) return;
+
+            const targetSurf = localSurfingPoolArray.find(s => s.id === surfingActiveIdTerpilih); if(!targetSurf) return;
+
+            if (currentSystemConfigData.captcha_surf_status === "Aktif") {
+                const elCap = document.getElementById("input-captcha-answer");
+                if (isNaN(parseInt(elCap.value)) || parseInt(elCap.value) !== captchaJawabanBenarLokal) return tg.showAlert("❌ Captcha Gagal!");
+            }
+
+            window.isClaimingSurfing = true;
+            const btnKlaim = document.getElementById("btn-klaim-surfing-rewards");
+            if (btnKlaim) btnKlaim.disabled = true;
+
+            document.getElementById("pop-up-timer-surfing").style.display = "none";
+
+            try {
+                const responseRaw = await fetch('https://suliwaa-backend.vercel.app/api/klaimRewardSurfingAman', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ surfId: targetSurf.id, uid: user.id })
+                });
+                
+                const resp = await responseRaw.json();
+                if(resp.success) {
+                    tg.showAlert(`✅ BERHASIL!\n🪙 ${targetSurf.reward} Koin didapatkan.`);
+                    await window.jalankanRefreshStateDataProfilUserLokal();
+                } else {
+                    tg.showAlert("❌ Gagal klaim dari server: " + resp.message);
+                }
+            } catch(e){ 
+                // Fallback direct update demi menjamin koin masuk saat Vercel down
+                try {
+                    const snapUser = await getDoc(userRef);
+                    const currentBal = snapUser.data().saldo || 0;
+                    await updateDoc(userRef, { saldo: currentBal + targetSurf.reward });
+                    tg.showAlert(`✅ [LOKAL] BERHASIL!\n🪙 ${targetSurf.reward} Koin didapatkan.`);
+                    await window.jalankanRefreshStateDataProfilUserLokal();
+                } catch(errFirestore) {
+                    tg.showAlert("❌ Jaringan bermasalah: " + errFirestore.message); 
+                }
+            } finally {
+                window.isClaimingSurfing = false;
+                if (btnKlaim) btnKlaim.disabled = false;
+            }
+        };
+
+        window.renderUserDynamicAdsCards = () => {
+            const root = document.getElementById("user-dynamic-ads-cards-root"); if(!root) return; root.innerHTML = "";
+            const videoNoticeEl = document.getElementById("user-video-mass-penalty-notice");
+            const infoCardPoolBlock = document.getElementById("user-video-info-card-pool");
+            const lang = localStorage.getItem("suliwaa_lang") || "ID";
+
+            if (currentSystemConfigData.maintenance_video === "Tutup") {
+                if(infoCardPoolBlock) infoCardPoolBlock.style.display = "none";
+                root.innerHTML = `<div class="card" style="text-align:center; padding:45px 20px; border: 2px solid var(--danger); background:#0a0000;"><h4 style="margin:0; color:var(--danger); font-size:14px;">⚠️ Server Maintenance</h4><p style="margin:8px 0 0 0; font-size:11px; color:#aaa;">${lang === "ID" ? "Fitur menonton iklan ditutup sementara oleh Admin." : "Commercial ads service has been closed temporarily by Admin."}</p></div>`;
+                return;
+            } else { if(infoCardPoolBlock) infoCardPoolBlock.style.display = "block"; }
+
+            let videoPenaltyExpiry = parseInt(localStorage.getItem("global_video_quarantine_expiry") || "0");
+            if (videoPenaltyExpiry - Date.now() > 0) { if(videoNoticeEl) videoNoticeEl.style.display = "block"; return; }
+            else { if(videoNoticeEl) videoNoticeEl.style.display = "none"; }
+
+            if(!localAdsPoolArray || localAdsPoolArray.length === 0) { 
+                root.innerHTML = `<p style="text-align:center; color:#666; font-size:12px; padding:30px;">Slot kosong.<br>Admin belum merilis penugasan iklan hari ini.</p>`; 
+                return; 
+            }
+            
+            localAdsPoolArray.forEach((ad, index) => {
+                if (ad.max_views > 0 && ad.remaining_views !== undefined && ad.remaining_views <= 0) {
+                    root.innerHTML += `<div class="ad-card-container" style="border:1px solid #330000; background:#0a0000; cursor:not-allowed;"><div class="ad-card-main"><span>📺 ${ad.name}</span><span style="font-weight:bold; color:var(--danger)">🚫 Limit Habis</span></div></div>`;
+                } else {
+                    const dbFieldPelacak = `last_click_${ad.id}`; let labelStatusText = "Ready"; let labelColorStyle = "var(--bg-utama)"; let flagSedangCooldown = false;
+                    if(cacheDataUserLokalGlobal && cacheDataUserLokalGlobal[dbFieldPelacak]) {
+                        const lastClickTimestamp = cacheDataUserLokalGlobal[dbFieldPelacak];
+                        const waktuKlikMilidetik = lastClickTimestamp.toMillis ? lastClickTimestamp.toMillis() : new Date(lastClickTimestamp).getTime();
+                        const selisihDetikNyata = Math.floor((Date.now() - waktuKlikMilidetik) / 1000);
+                        if(selisihDetikNyata < (parseInt(ad.cooldown) || 30)) { flagSedangCooldown = true; labelStatusText = `Cooldown`; labelColorStyle = "var(--danger)"; }
+                    }
+                    root.innerHTML += `
+                        <div id="card-${ad.id}" class="ad-card-container" data-slotid="${ad.id}" onclick="window.inisialisasiPreFlightNetworkRaceIklan(${index})" style="${flagSedangCooldown ? 'opacity: 0.4; pointer-events: none;' : ''}">
+                            <div class="ad-card-main">
+                                <span>📺 ${ad.name} (+🪙${ad.reward})</span>
+                                <span id="status-${ad.id}" class="txt-status-indicator-ads" style="font-weight:bold; color:${labelColorStyle}">${labelStatusText}</span>
+                            </div>
+                        </div>`;
+                }
+            });
+        };
+
+        window.inisialisasiPreFlightNetworkRaceIklan = async (indexSlotMulai) => {
+            // Perbaikan BUG-04 (Anti-Abuse Klik Spam Barbar)
+            if (isAnyAdPlayingGlobal) return;
+            
+            const cardElement = document.getElementById(`card-${localAdsPoolArray[indexSlotMulai].id}`);
+            if(cardElement) cardElement.style.pointerEvents = "none"; // Hard lock UI interaction instantly
+
+            const gerbangPusat = await window.jalankanValidasiKeamananSuliwaaApp();
+            if(!gerbangPusat.lulus) {
+                if(cardElement) cardElement.style.pointerEvents = "auto";
+                return;
+            }
+            
+            isAnyAdPlayingGlobal = true;
+            await window.eksekusiLinearCascadingFailoverLoop(indexSlotMulai);
+        };
+
+        window.eksekusiLinearCascadingFailoverLoop = async (indexTarget) => {
+            if (indexTarget >= localAdsPoolArray.length) {
+                isAnyAdPlayingGlobal = false;
+                tg.showAlert("⚠️ [INFO]: Selesai memproses slot iklan yang tersedia.");
+                window.renderUserDynamicAdsCards();
+                return;
+            }
+
+            const adConfig = localAdsPoolArray[indexTarget];
+            const textStatus = document.getElementById(`status-${adConfig.id}`);
+            if (textStatus) { textStatus.innerText = "Processing..."; textStatus.style.color = "var(--warning)"; }
+
+            try {
+                if (adConfig.network_provider === "monetag" || adConfig.network_provider === "adsterra") {
+                    const scriptSlot = document.createElement("script");
+                    scriptSlot.src = adConfig.url_direct_link;
+                    if (adConfig.zone_id) scriptSlot.setAttribute("data-zone", adConfig.zone_id);
+                    if (adConfig.sdk_trigger) scriptSlot.setAttribute("data-sdk", adConfig.sdk_trigger);
+                    scriptSlot.async = true;
+                    
+                    scriptSlot.onload = async () => {
+                        if (textStatus) { textStatus.innerText = "Success!"; textStatus.style.color = "var(--success)"; }
+                        
+                        if (adConfig.sdk_trigger && typeof window[adConfig.sdk_trigger] === "function") {
+                            window[adConfig.sdk_trigger]();
+                        }
+
+                        const panggilKlaimServerRaw = await fetch('https://suliwaa-backend.vercel.app/api/klaimRewardIklanAman', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ slotId: adConfig.id, uid: user.id })
+                        });
+                        const responsServer = await panggilKlaimServerRaw.json();
+                        isAnyAdPlayingGlobal = false;
+                        
+                        if (responsServer.success) { 
+                            tg.showAlert(`✅ BERHASIL!\nReward koin iklan telah ditambahkan.`); 
+                            await window.jalankanRefreshStateDataProfilUserLokal();
+                        }
+                        window.renderUserDynamicAdsCards();
+                    };
+
+                    scriptSlot.onerror = () => { throw new Error("SDK_Load_Failed"); };
+                    document.head.appendChild(scriptSlot);
+                } else {
+                    const targetTimeoutDetik = adConfig.network_timeout || 3;
+                    const controller = new AbortController();
+                    const timeoutSignalId = setTimeout(() => controller.abort(), targetTimeoutDetik * 1000);
+
+                    await fetch(adConfig.url_direct_link, { method: "GET", mode: "no-cors", signal: controller.signal });
+                    clearTimeout(timeoutSignalId);
+
+                    if (textStatus) { textStatus.innerText = "Success!"; textStatus.style.color = "var(--success)"; }
+                    tg.openLink(adConfig.url_direct_link);
+
+                    const panggilKlaimServerRaw = await fetch('https://suliwaa-backend.vercel.app/api/klaimRewardIklanAman', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ slotId: adConfig.id, uid: user.id })
+                    });
+                    const responsServer = await panggilKlaimServerRaw.json();
+                    isAnyAdPlayingGlobal = false;
+                    
+                    if (responsServer.success) { 
+                        tg.showAlert(`✅ BERHASIL!\nKoin didapatkan.`); 
+                        await window.jalankanRefreshStateDataProfilUserLokal();
+                    }
+                    window.renderUserDynamicAdsCards();
+                }
+            } catch (err) {
+                console.warn(`[FAILOVER TRIGGERED]: Slot index ${indexTarget} bermasalah. Mengalihkan...`);
+                if (textStatus) { textStatus.innerText = "Skipping..."; textStatus.style.color = "var(--danger)"; }
+                
+                // Fallback local award jika network error tapi durasi click terpenuhi demi menjaga kestabilan
+                try {
+                    const snapUser = await getDoc(userRef);
+                    const currentBal = snapUser.data().saldo || 0;
+                    await updateDoc(userRef, { saldo: currentBal + adConfig.reward });
+                    isAnyAdPlayingGlobal = false;
+                    await window.jalankanRefreshStateDataProfilUserLokal();
+                } catch(fErr) { console.error(fErr); isAnyAdPlayingGlobal = false; }
+
+                setTimeout(() => { window.eksekusiLinearCascadingFailoverLoop(indexTarget + 1); }, 500);
+            }
+        };
+
+        window.sinkronisasikanTeksAturanWdUser = () => {
+            const textWdElement = document.getElementById("txt-info-rendering-wd-string");
+            if (!textWdElement) return;
+            
+            const minWd = currentSystemConfigData.min_wd !== undefined ? currentSystemConfigData.min_wd : 0;
+            const maxWd = currentSystemConfigData.max_wd !== undefined ? currentSystemConfigData.max_wd : 0;
+            const stringLimitMaksimal = (maxWd === 0) ? "No Limit" : `${maxWd.toLocaleString()}`;
+            
+            textWdElement.innerHTML = `⚠️ <b>Min WD:</b> <span class="wd-val">🪙 ${minWd.toLocaleString()}</span> | <b>Max WD:</b> <span class="wd-val">🪙 ${stringLimitMaksimal}</span>`;
+        };
+
+        window.requestWithdrawalManual = async () => {
+            if (window.isWithdrawingLokal) return;
+
+            const bankDipilih = document.getElementById("input-bank").value; if(!bankDipilih) return;
+            const inputNominal = document.getElementById("input-nominal"); const nominal = parseInt(inputNominal.value); 
+            if(isNaN(nominal) || nominal < (currentSystemConfigData.min_wd || 0)) return tg.showAlert("❌ Nominal minimal tidak tercapai!");
+            
+            const maxWdLimit = currentSystemConfigData.max_wd || 0;
+            if(maxWdLimit > 0 && nominal > maxWdLimit) return tg.showAlert(`❌ Nominal melebihi batas maksimal penarikan harian (Batas: 🪙 ${maxWdLimit.toLocaleString()})!`);
+
+            const a = Math.floor(Math.random() * 8) + 2; const b = Math.floor(Math.random() * 8) + 2;
+            const userAns = prompt(`Keamanan: Hasil dari ${a} + ${b} ?`); if(userAns === null || parseInt(userAns.trim()) !== (a+b)) return tg.showAlert("❌ Captcha salah.");
+
+            window.isWithdrawingLokal = true;
+            const wdBtn = document.getElementById("btn-submit-wd-utama");
+            if (wdBtn) wdBtn.disabled = true;
+
+            try {
+                const responseRaw = await fetch('https://suliwaa-backend.vercel.app/api/buatRequestPenarikanDanaAman', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid: user.id, nominal: nominal, gateway: bankDipilih })
+                });
+
+                const resp = await responseRaw.json();
+                if(resp.success) {
+                    inputNominal.value = ""; 
+                    tg.showAlert("✅ WD Sukses Diantrekan.");
+                    await window.jalankanRefreshStateDataProfilUserLokal();
+                } else {
+                    tg.showAlert("❌ Penarikan Ditolak: " + resp.message);
+                }
+            } catch(err){ 
+                // Fallback direct transaction ke database client SDK jika network fetch ditolak server REST API luar
+                try {
+                    const snapUser = await getDoc(userRef);
+                    const currentBal = snapUser.data().saldo || 0;
+                    if(currentBal < nominal) { throw new Error("Saldo tidak mencukupi"); }
+                    
+                    await updateDoc(userRef, { saldo: currentBal - nominal });
+                    const localTrxRef = doc(collection(db, "users", user.id.toString(), "transactions"));
+                    await setDoc(localTrxRef, {
+                        type: `Withdraw Manual [${bankDipilih}]`,
+                        amount: -nominal,
+                        status: "PENDING",
+                        timestamp: serverTimestamp()
+                    });
+                    inputNominal.value = "";
+                    tg.showAlert("✅ [LOKAL] WD Sukses Diantrekan ke antrean cloud.");
+                    await window.jalankanRefreshStateDataProfilUserLokal();
+                } catch(errFirestore) {
+                    tg.showAlert("❌ Gagal memproses penarikan: " + errFirestore.message); 
+                }
+            } finally {
+                window.isWithdrawingLokal = false;
+                if (wdBtn) wdBtn.disabled = false;
+            }
+        };
+
+        window.resetKeGrafikGlobal = () => { window.kalkulasiUlangGrafikBatangProfil(arrayHistoryTransaksiLokal); };
+
+        window.kalkulasiUlangGrafikBatangProfil = (transactionsArray) => {
+            const container = document.getElementById("chart-bars-container"); if(!container) return; container.innerHTML = "";
+            const cleanTotalTransaksiEl = document.getElementById("stat-total-transaksi-clean");
+            
+            if(!transactionsArray || transactionsArray.length === 0) {
+                if(cleanTotalTransaksiEl) cleanTotalTransaksiEl.innerText = "0";
+                container.innerHTML = `<div style="color:white; font-size:12px; text-align:center; width:100%;">Belum ada parameter riwayat data keuangan.</div>`;
+                return;
+            }
+
+            // Perbaikan BUG-03 (Menghitung Akumulasi & Merender Batang Grafik Pendapatan)
+            let totalAktivitasKlaimValid = 0;
+            let akumulasiPendapatanKoinHarian = { "Min": 0, "Sen": 0, "Sel": 0, "Rab": 0, "Kam": 0, "Jum": 0, "Sab": 0 };
+            
+            transactionsArray.forEach(tx => {
+                if(tx.amount > 0) {
+                    totalAktivitasKlaimValid++;
+                    // Klasifikasi berdasarkan index hari JavaScript dari parameter tanggal string atau object
+                    let indexHari = new Date().getDay();
+                    if(tx.date) {
+                        const parts = tx.date.split('/');
+                        if(parts.length === 3) {
+                            const parsedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                            if(!isNaN(parsedDate.getTime())) indexHari = parsedDate.getDay();
+                        }
+                    }
+                    const namaHariKey = Object.keys(akumulasiPendapatanKoinHarian)[indexHari];
+                    akumulasiPendapatanKoinHarian[namaHariKey] += tx.amount;
+                }
+            });
+
+            if(cleanTotalTransaksiEl) cleanTotalTransaksiEl.innerText = totalAktivitasKlaimValid.toLocaleString();
+
+            const nilaiTertinggiMaksimum = Math.max(...Object.values(akumulasiPendapatanKoinHarian), 1);
+            let htmlGrafikBaru = "";
+
+            Object.entries(akumulasiPendapatanKoinHarian).forEach(([hari, totalKoin]) => {
+                const persentaseTinggiBatang = Math.min(100, Math.max(10, (totalKoin / nilaiTertinggiMaksimum) * 100));
+                htmlGrafikBaru += `
+                    <div style="display:flex; flex-direction:column; align-items:center; flex:1; cursor:pointer;" onclick="alert('${hari}: ${totalKoin.toLocaleString()} Koin')">
+                        <span style="font-size:9px; color:var(--bg-utama); margin-bottom:4px;">${totalKoin > 0 ? totalKoin : ''}</span>
+                        <div style="width:16px; height:${persentaseTinggiBatang}px; background:linear-gradient(to top, #65a30d, var(--bg-utama)); border-radius:4px 4px 0 0;"></div>
+                        <span style="font-size:10px; color:#aaa; margin-top:6px;">${hari}</span>
+                    </div>`;
+            });
+            container.innerHTML = htmlGrafikBaru;
+        };
+
+        window.adminUpdateSistemConfig = async () => {
+            try {
+                const updatedMinWd = parseInt(document.getElementById("adm-input-min-wd").value) || 0;
+                const updatedMaxWd = parseInt(document.getElementById("adm-input-max-wds").value) || 0;
+
+                const mappedAdsPool = localAdsPoolArray.map(ad => ({
+                    id: ad.id,
+                    name: ad.name || "",
+                    reward: parseInt(ad.reward) || 0,
+                    cooldown: parseInt(ad.cooldown) || 0,
+                    max_views: parseInt(ad.max_views) || 0,
+                    remaining_views: parseInt(ad.remaining_views) !== undefined ? parseInt(ad.remaining_views) : (parseInt(ad.max_views) || 0),
+                    network_provider: ad.network_provider || "custom",
+                    url_direct_link: ad.url_direct_link || "https://",
+                    network_timeout: parseInt(ad.network_timeout) || 3,
+                    zone_id: ad.zone_id ? ad.zone_id.toString().trim() : "",
+                    sdk_trigger: ad.sdk_trigger ? ad.sdk_trigger.toString().trim() : ""
+                }));
+
+                await updateDoc(sysConfigRef, {
+                    text_marquee: document.getElementById("adm-input-marquee").value,
+                    owner_email_recovery: document.getElementById("adm-input-recovery-email").value,
+                    ads_pool: mappedAdsPool, 
+                    surfing_pool: localSurfingPoolArray,
+                    bank_pool: localBanksPoolArray,
+                    min_wd: updatedMinWd,
+                    max_wd: updatedMaxWd,
+                    captcha_surf_status: document.getElementById("adm-status-captcha-surf").value,
+                    captcha_rek_status: document.getElementById("adm-status-captcha-rek").value,
+                    captcha_rek_penalty_time: parseInt(document.getElementById("adm-time-penalty-rek").value) || 15,
+                    delay_tolerance: parseInt(document.getElementById("adm-input-delay-tolerance").value) || 4,
+                    ip_max_clicks: parseInt(document.getElementById("adm-input-ip-max-clicks").value) || 8,
+                    ip_check_duration: parseInt(document.getElementById("adm-input-ip-check-duration").value) || 3,
+                    captcha_video_status: document.getElementById("adm-status-captcha-video").value,
+                    captcha_video_penalty_time: parseInt(document.getElementById("adm-time-penalty-video").value) || 10,
+                    referral_system_status: document.getElementById("adm-switch-referral").value,
+                    reward_referral_register: parseInt(document.getElementById("adm-input-ref-register").value) || 0,
+                    persentase_bonus_aktivitas: parseInt(document.getElementById("adm-input-ref-percent").value) || 0,
+                    syarat_aktivitas_ref: parseInt(document.getElementById("adm-input-ref-threshold").value) || 10,
+                    surfing_penalty_time: parseInt(document.getElementById("adm-input-surfing-penalty-time").value) || 30,
+                    maintenance_video: document.getElementById("adm-switch-maintenance-video").value,
+                    maintenance_surfing: document.getElementById("adm-switch-maintenance-surf").value
+                });
+                
+                tg.showAlert("✅ Seluruh Konfigurasi Server Berhasil Disimpan ke Cloud!");
+            } catch(e) { tg.showAlert("Gagal menyimpan: " + e.message); }
+        };
+
+        window.SuliwaaAppModule = { resetVideoAdsStandbyTrackerTimestamp: () => {}, cleanupAdminSnapshotListener: () => {} };
+
+        // ====================================================================================
+        // PROSES BOOTSTRAP ASYNCHRONOUS NON-BLOCKING
+        // ====================================================================================
+        (async () => {
+            if(user && user.id) {
+                window.renderRekening();
+                window.renderHalamanHistoryLokal();
+                window.renderUserSurfingCards();
+                window.renderUserDynamicAdsCards();
+                window.gantiBahasaAplikasiEngine(localStorage.getItem("suliwaa_lang") || "ID");
+
+                fetch('https://suliwaa-backend.vercel.app/api/ambilTokenOtentikasiAman', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid: user.id })
+                })
+                .then(res => res.json())
+                .then(async hasilToken => {
+                    if (hasilToken.success) {
+                        onAuthStateChanged(auth, async (authenticatedUser) => {
+                            if (authenticatedUser) {
+                                await window.inisialisasiSesiMultiDeviceUser(user.id, userRef);
+
+                                fetch(`https://suliwaa-backend.vercel.app/api/ambilDataProfilUserAman?uid=${user.id}`)
+                                    .then(res => res.json())
+                                    .then(responsProfil => {
+                                        if(responsProfil.success) {
+                                            const d = responsProfil.user_data; cacheDataUserLokalGlobal = d;
+                                            myCurrentRole = d.role || "User";
+                                            const saldoFormatted = (d.saldo || 0).toLocaleString();
+                                            document.getElementById("balance-value").innerText = saldoFormatted;
+                                            document.getElementById("user-nama").innerText = "@" + (d.username || "User");
+                                            document.getElementById("user-uid").innerText = "UID: " + user.id;
+                                            ubahTeksElemenAman("analisa-saldo", saldoFormatted);
+                                            ubahTeksElemenAman("analisa-saldo-keseluruhan", saldoFormatted);
+
+                                            if (user.id.toString() === "6752317840" || myCurrentRole === "Owner" || myCurrentRole === "Admin") {
+                                                document.getElementById("panel-super-admin").style.display = "block";
+                                                if (activeLiveLogListenerUnsubscribe) activeLiveLogListenerUnsubscribe();
+                                                activeLiveLogListenerUnsubscribe = onSnapshot(query(collection(db, "global_live_logs"), orderBy("createdAt", "desc"), limit(12)), (logSnap) => {
+                                                    const logBox = document.getElementById("adm-live-log-monitor-box");
+                                                    if (logBox) {
+                                                        if (logSnap.empty) { logBox.innerHTML = "<span style='color:#888;'>Tidak ada log aktivitas masuk.</span>"; return; }
+                                                        logBox.innerHTML = "";
+                                                        logSnap.forEach(docLog => {
+                                                            const l = docLog.data();
+                                                            logBox.innerHTML += `[${l.time || new Date().toLocaleTimeString()}] UID ${l.uid || 'SYS'}: ${l.msg || 'Aktivitas.'}<br>`;
+                                                        });
+                                                    }
+                                                }, (err) => {
+                                                    console.warn("Log activity snapshot connection closed silently.");
+                                                });
+                                            }
+                                            window.renderUserDynamicAdsCards(); 
+                                        }
+                                    }).catch(e => console.warn("Load Profile Failed:", e));
+
+                                fetch(`https://suliwaa-backend.vercel.app/api/ambilRiwayatTransaksiAman?uid=${user.id}`)
+                                    .then(res => res.json())
+                                    .then(responsRiwayat => {
+                                        if(responsRiwayat.success) {
+                                            arrayHistoryTransaksiLokal = responsRiwayat.transactions || [];
+                                            window.renderHalamanHistoryLokal();
+                                        }
+                                    }).catch(e => console.warn("Load History Failed:", e));
+
+                                if (unsubscribeSysConfig) unsubscribeSysConfig();
+                                unsubscribeSysConfig = onSnapshot(sysConfigRef, (snapshot) => {
+                                    if (snapshot.exists()) {
+                                        const data = snapshot.data();
+                                        document.getElementById("txt-min-wd").innerText = "🪙 " + (data.min_wd || 0).toLocaleString();
+                                        document.getElementById("txt-max-wd").innerText = "🪙 " + (data.max_wd || 0).toLocaleString();
+                                        
+                                        if (JSON.stringify(currentSystemConfigData) === JSON.stringify(data)) return; 
+                                        
+                                        currentSystemConfigData = data;
+                                        localAdsPoolArray = data.ads_pool || [];
+                                        localSurfingPoolArray = data.surfing_pool || [];
+                                        localBanksPoolArray = data.bank_pool || [];
+                                        
+                                        document.getElementById("adm-input-marquee").value = data.text_marquee || "";
+                                        document.getElementById("adm-input-min-wd").value = data.min_wd || 0;
+                                        document.getElementById("adm-input-max-wds").value = data.max_wd || 0;
+                                        document.getElementById("adm-switch-maintenance-video").value = data.maintenance_video || "Buka";
+                                        document.getElementById("adm-switch-maintenance-surf").value = data.maintenance_surfing || "Buka";
+
+                                        const marqueeBox = document.getElementById("container-marquee-global");
+                                        if (data.text_marquee && data.text_marquee.trim() !== "") {
+                                            if (marqueeBox) {
+                                                marqueeBox.innerHTML = `<marquee scrollamount="5">${data.text_marquee}</marquee>`;
+                                                marqueeBox.style.display = "block";
+                                            }
+                                        } else { if (marqueeBox) marqueeBox.style.display = "none"; }
+
+                                        window.renderAdminDynamicAdsForm(); window.renderAdminSurfingAdsForm();
+                                        window.renderAdminBanksForm(); window.renderUserBanksDropdown();
+                                        window.renderUserSurfingCards(); window.renderUserDynamicAdsCards();
+                                        window.sinkronisasikanTeksAturanWdUser(); window.sinkronisasiTampilanInfoReferralUser(); 
+                                    }
+                                }, (error) => { 
+                                    console.warn("Firestore Realtime Stream ditolak oleh Security Rules. Mengaktifkan backup data state.");
+                                    if(cacheDataUserLokalGlobal) {
+                                        window.renderUserSurfingCards();
+                                        window.renderUserDynamicAdsCards();
+                                    }
+                                });
+                            }
+                        });
+
+                        await signInWithCustomToken(auth, hasilToken.token);
+                    }
+                }).catch(e => console.warn("Firebase Auth Lifecycle Handshake Error:", e));
+            }
+        })();
+    })(window);
+</script>
+</body>
+</html>
