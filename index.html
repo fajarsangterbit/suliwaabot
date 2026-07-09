@@ -1407,7 +1407,6 @@
                     
                     if (temukanAd) {
                         cleanTypeTitle = temukanAd.name + " 📺";
-                        if (finalAmountValue === 20 || finalAmountValue === 0) finalAmountValue = temukanAd.reward;
                     } else if (matchCustomName && matchCustomName[1]) {
                         cleanTypeTitle = matchCustomName[1] + " 📺";
                     } else {
@@ -1421,7 +1420,6 @@
                     
                     if (temukanSurf) {
                         cleanTypeTitle = temukanSurf.name + " 🌐";
-                        if (finalAmountValue === 0) finalAmountValue = temukanSurf.reward;
                     } else if (matchCustomName && matchCustomName[1]) {
                         cleanTypeTitle = matchCustomName[1] + " 🌐";
                     } else {
@@ -1676,7 +1674,7 @@
                 });
                 if(inputNom) inputNom.value = "";
                 tg.showAlert("✅ Koreksi saldo berhasil disalin ke Cloud!");
-                await window.adminCariUserFirestore();
+                setTimeout(async () => { await window.adminCariUserFirestore(); }, 800);
             } catch(e) { tg.showAlert("❌ Gagal koreksi: " + e.message); }
         };
 
@@ -1689,7 +1687,7 @@
                 const statusSekarang = tSnap.data().wallet_frozen || false;
                 await updateDoc(tRef, { wallet_frozen: !statusSekarang });
                 tg.showAlert("✅ Status pembekuan wallet diperbarui!");
-                await window.adminCariUserFirestore();
+                setTimeout(async () => { await window.adminCariUserFirestore(); }, 800);
             } catch(e) { tg.showAlert("❌ Gagal mengubah status wallet: " + e.message); }
         };
 
@@ -1702,7 +1700,7 @@
                 const statusSekarang = tSnap.data().is_blocked || false;
                 await updateDoc(tRef, { is_blocked: !statusSekarang });
                 tg.showAlert("✅ Status suspend/blokir berhasil disimpan!");
-                await window.adminCariUserFirestore();
+                setTimeout(async () => { await window.adminCariUserFirestore(); }, 800);
             } catch(e) { tg.showAlert("❌ Gagal mengubah status blokir: " + e.message); }
         };
 
@@ -1713,7 +1711,7 @@
             try {
                 await updateDoc(doc(db, "users", targetUserTerpilihUid.toString()), { saldo: 0 });
                 tg.showAlert("✅ Saldo berhasil dikosongkan!");
-                await window.adminCariUserFirestore();
+                setTimeout(async () => { await window.adminCariUserFirestore(); }, 800);
             } catch(e) { tg.showAlert("❌ Gagal melakukan reset: " + e.message); }
         };
 
@@ -1723,7 +1721,7 @@
             try {
                 await updateDoc(doc(db, "users", targetUserTerpilihUid.toString()), { role: selectRole });
                 tg.showAlert("✅ Tingkatan otoritas jabatan berhasil diperbarui!");
-                await window.adminCariUserFirestore();
+                setTimeout(async () => { await window.adminCariUserFirestore(); }, 800);
             } catch(e) { tg.showAlert("❌ Gagal menyimpan jabatan: " + e.message); }
         };
 
@@ -1929,18 +1927,6 @@
                         targetSurf.remaining_views = Math.max(0, targetSurf.remaining_views - 1); 
                     }
                     tg.showAlert(`✅ BERHASIL!\n🪙 ${targetSurf.reward} Koin didapatkan.`);
-                    
-                    const fakeTrxId = "TX-SURF-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-                    arrayHistoryTransaksiLokal.unshift({
-                        id: fakeTrxId,
-                        type: `[${targetSurf.name}]`,
-                        amount: targetSurf.reward,
-                        status: "SUCCESS",
-                        date: new Date().toLocaleDateString('id-ID'),
-                        time: new Date().toLocaleTimeString('id-ID'),
-                        rawTime: Date.now()
-                    });
-
                     await window.jalankanRefreshStateDataProfilUserLokal();
                 } else {
                     tg.showAlert("❌ Gagal klaim dari server: " + resp.message);
@@ -1955,17 +1941,6 @@
                         targetSurf.remaining_views = Math.max(0, targetSurf.remaining_views - 1); 
                     }
                     tg.showAlert(`✅ BERHASIL (Lokal Backup Node)!\n🪙 ${targetSurf.reward} Koin didapatkan.`);
-                    
-                    arrayHistoryTransaksiLokal.unshift({
-                        id: "TX-SURF-LOCAL-" + Date.now(),
-                        type: `[${targetSurf.name}]`,
-                        amount: targetSurf.reward,
-                        status: "SUCCESS",
-                        date: new Date().toLocaleDateString('id-ID'),
-                        time: new Date().toLocaleTimeString('id-ID'),
-                        rawTime: Date.now()
-                    });
-
                     await window.jalankanRefreshStateDataProfilUserLokal();
                 } catch(errFirestore) { console.error(errFirestore); }
             } finally {
@@ -2083,18 +2058,6 @@
                     if (responsServer.success) { 
                         if(adConfig.max_views > 0 && adConfig.remaining_views !== undefined) { adConfig.remaining_views = Math.max(0, adConfig.remaining_views - 1); }
                         tg.showAlert(`✅ BERHASIL!\nReward koin iklan telah ditambahkan.`); 
-                        
-                        const fakeTrxId = "TX-VIDEO-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-                        arrayHistoryTransaksiLokal.unshift({
-                            id: fakeTrxId,
-                            type: `[${adConfig.name}]`,
-                            amount: adConfig.reward,
-                            status: "SUCCESS",
-                            date: new Date().toLocaleDateString('id-ID'),
-                            time: new Date().toLocaleTimeString('id-ID'),
-                            rawTime: Date.now()
-                        });
-
                         await window.jalankanRefreshStateDataProfilUserLokal();
                     }
                     window.renderUserDynamicAdsCards();
@@ -2103,7 +2066,9 @@
                     const controller = new AbortController();
                     const timeoutSignalId = setTimeout(() => controller.abort(), targetTimeoutDetik * 1000);
 
-                    await fetch(adConfig.url_direct_link, { method: "GET", mode: "no-cors", signal: controller.signal });
+                    try {
+                        await fetch(adConfig.url_direct_link, { method: "GET", mode: "no-cors", signal: controller.signal });
+                    } catch(fetchError) {}
                     clearTimeout(timeoutSignalId);
 
                     if (textStatus) { textStatus.innerText = "Success!"; textStatus.style.color = "var(--success)"; }
@@ -2123,18 +2088,6 @@
                     if (responsServer.success) { 
                         if(adConfig.max_views > 0 && adConfig.remaining_views !== undefined) { adConfig.remaining_views = Math.max(0, adConfig.remaining_views - 1); }
                         tg.showAlert(`✅ BERHASIL!\nKoin didapatkan.`); 
-                        
-                        const fakeTrxId = "TX-VIDEO-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-                        arrayHistoryTransaksiLokal.unshift({
-                            id: fakeTrxId,
-                            type: `[${adConfig.name}]`,
-                            amount: adConfig.reward,
-                            status: "SUCCESS",
-                            date: new Date().toLocaleDateString('id-ID'),
-                            time: new Date().toLocaleTimeString('id-ID'),
-                            rawTime: Date.now()
-                        });
-
                         await window.jalankanRefreshStateDataProfilUserLokal();
                     }
                     window.renderUserDynamicAdsCards();
@@ -2148,21 +2101,8 @@
                     
                     if(adConfig.max_views > 0 && adConfig.remaining_views !== undefined) { adConfig.remaining_views = Math.max(0, adConfig.remaining_views - 1); }
                     isAnyAdPlayingGlobal = false;
-
-                    arrayHistoryTransaksiLokal.unshift({
-                        id: "TX-VIDEO-LOCAL-" + Date.now(),
-                        type: `[${adConfig.name}]`,
-                        amount: adConfig.reward,
-                        status: "SUCCESS",
-                        date: new Date().toLocaleDateString('id-ID'),
-                        time: new Date().toLocaleTimeString('id-ID'),
-                        rawTime: Date.now()
-                    });
-
                     await window.jalankanRefreshStateDataProfilUserLokal();
                 } catch(fErr) { isAnyAdPlayingGlobal = false; }
-
-                setTimeout(() => { window.eksekusiLinearCascadingFailoverLoop(indexTarget + 1); }, 500);
             }
         };
 
@@ -2213,18 +2153,6 @@
                 if(resp.success) {
                     inputNominal.value = ""; 
                     tg.showAlert(`✅ BERHASIL MASUK ANTRIAN PENDING!\nPermintaan penarikan sebesar 🪙 ${nominal.toLocaleString()} sedang diproses secara manual.`);
-                    
-                    arrayHistoryTransaksiLokal.unshift({
-                        id: "WD-" + Date.now(),
-                        type: `Withdraw Manual [${bankDipilih}]`,
-                        amount: -nominal,
-                        status: "PENDING",
-                        date: new Date().toLocaleDateString('id-ID'),
-                        time: new Date().toLocaleTimeString('id-ID'),
-                        rawTime: Date.now()
-                    });
-
-                    window.renderHalamanHistoryLokal();
                     await window.jalankanRefreshStateDataProfilUserLokal();
                 } else {
                     tg.showAlert("❌ Penarikan Ditolak: " + resp.message);
@@ -2236,23 +2164,20 @@
                     if(currentBal < nominal) { throw new Error("Saldo tidak mencukupi"); }
                     
                     await updateDoc(userRef, { saldo: currentBal - nominal });
-                    inputNominal.value = "";
-                    tg.showAlert(`✅ BERHASIL (Lokal Failover)!\nPermintaan penarikan sebesar 🪙 ${nominal.toLocaleString()} dicatat.`);
                     
-                    arrayHistoryTransaksiLokal.unshift({
-                        id: "WD-LOCAL-" + Date.now(),
+                    const newTrxRef = doc(collection(db, "users", user.id.toString(), "transactions"));
+                    await setDoc(newTrxRef, {
                         type: `Withdraw Manual [${bankDipilih}]`,
                         amount: -nominal,
                         status: "PENDING",
-                        date: new Date().toLocaleDateString('id-ID'),
-                        time: new Date().toLocaleTimeString('id-ID'),
-                        rawTime: Date.now()
+                        timestamp: serverTimestamp()
                     });
 
-                    window.renderHalamanHistoryLokal();
+                    inputNominal.value = "";
+                    tg.showAlert(`✅ BERHASIL (Lokal Failover)!\nPermintaan penarikan sebesar 🪙 ${nominal.toLocaleString()} dicatat.`);
                     await window.jalankanRefreshStateDataProfilUserLokal();
                 } catch(errFirestore) { console.error(errFirestore); }
-            } finally {
+            } file {
                 window.isWithdrawingLokal = false;
                 if (wdBtn) wdBtn.disabled = false;
             }
@@ -2294,7 +2219,7 @@
                             if(!isNaN(parsedDate.getTime())) indexHari = parsedDate.getDay();
                         } else {
                             const parsedIso = new Date(tx.date);
-                            if(!isNaN(parsedIso.getTime())) indexHari = parsedIso.getTime();
+                            if(!isNaN(parsedIso.getTime())) indexHari = parsedIso.getDay();
                         }
                     }
                     const namaHariKey = Object.keys(akumulasiPendapatanKoinHarian)[indexHari];
@@ -2394,7 +2319,7 @@
         window.handleAdminChangeMaxViewsField = handleAdminChangeMaxViewsField;
 
         // ==========================================================================
-        // INITIALIZATION NODE - PATCHED FOR FAIL-SAFE PARALLEL AUTOLOAD
+        // INITIALIZATION NODE - PARALLEL AUTOLOAD
         // ==========================================================================
         (async () => {
             if(user && user.id) {
