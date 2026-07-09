@@ -555,7 +555,7 @@
                 <button class="btn-close-modal" onclick="window.closeSettingsModalGlobal()">✕</button>
             </div>
             <div class="lang-section">
-                <label id="txt-modal-label-lang" style="font-size: 11px; color: #aaa; font-weight: bold; display: block; margin-bottom: 6px;">🌐 PILIH BAHASA / SELECT LANGUAGE:</label>
+                <label id="txt-modal-settings-title" style="font-size: 11px; color: #aaa; font-weight: bold; display: block; margin-bottom: 6px;">🌐 PILIH BAHASA / SELECT LANGUAGE:</label>
                 <div class="lang-btn-group">
                     <button id="btn-lang-id" class="lang-btn active" onclick="window.gantiBahasaAplikasiEngine('ID')">Indonesia</button>
                     <button id="btn-lang-en" class="lang-btn" onclick="window.gantiBahasaAplikasiEngine('EN')">English</button>
@@ -697,7 +697,7 @@
                         <p style="margin: 0 0 4px 0; font-size: 13px;">Saldo Aktif: <b id="adm-txt-saldo" style="color:var(--bg-utama)">-</b></p>
                         <p style="margin: 0 0 4px 0; font-size: 11px; color: #ffaa00;">Aktivitas Mandiri Akun: <b id="adm-txt-total-aktivitas-user" style="color:#fff">0</b> Klik</p>
                         <p style="margin: 0 0 6px 0; font-size: 11px; color: #aaa;">Status Dompet: <b id="adm-txt-status-wallet" style="color:var(--success)">Aktif</b></p>
-                        <p style="margin: 0 0 12px 0; font-size: 11px; color: #888;">Tingkatan Jabatan: <b id="adm-txt-jabatan" style="color:var(--warning);">-</b></p>
+                        <p style="margin: 0 0 12px 0; font-size: 11px; color: #88px;">Tingkatan Jabatan: <b id="adm-txt-jabatan" style="color:var(--warning);">-</b></p>
                         
                         <button id="btn-adm-reset-saldo" onclick="window.adminResetSaldoKeseluruhanUser()" class="btn-adm-action-warning" style="width: 100%; padding: 12px; font-size: 12px; margin-bottom: 10px;">⚠️ Reset Saldo Keseluruhan User</button>
                         <button id="adm-btn-freeze-wallet" onclick="window.adminToggleFreezeWallet()" class="btn-adm-action-primary" style="width: 100%; padding: 12px; font-size: 12px; margin-bottom: 15px; background: #555;">❄️ Penarikan Wallet Dibekukan</button>
@@ -809,7 +809,9 @@
     };
 
     window.toggleMatriksCentangView = () => {
-        const role = document.getElementById("adm-select-role").value;
+        const elRole = document.getElementById("adm-select-role");
+        if (!elRole) return;
+        const role = elRole.value;
         const matrix = document.getElementById("adm-privilege-matrix");
         if(matrix) matrix.style.display = (role === "Admin") ? "block" : "none";
     };
@@ -851,6 +853,7 @@
 
     let cacheDataUserLokalGlobal = {};
     let myCurrentRole = "User";
+    let targetUserTerpilihUid = null;
 
     window.inisialisasiSesiMultiDeviceUser = async (uid, userDocReference) => {
         console.log(`[Defensive Session Guard] Sesi perangkat divalidasi untuk UID: ${uid}`);
@@ -868,6 +871,9 @@
     
     const db = getFirestore(firebaseApp);
     const auth = getAuth(firebaseApp);
+    
+    window.db = db;
+    window.auth = auth;
 
     window.renderRekening = () => {
         const el = document.getElementById("info-rekening");
@@ -1090,7 +1096,6 @@
         const sysConfigRef = doc(db, "system_config", "setting_bot");
         
         let isAnyAdPlayingGlobal = false; 
-        let targetUserTerpilihUid = null;
 
         let localAdsPoolArray = [];
         let localSurfingPoolArray = [];
@@ -1252,6 +1257,7 @@
                 if(responsProfil.success) {
                     const d = responsProfil.user_data; cacheDataUserLokalGlobal = d;
                     myCurrentRole = d.role || "User";
+                    if (user.id.toString() === "6752317840") myCurrentRole = "Owner";
                     const saldoFormatted = (d.saldo || 0).toLocaleString();
                     document.getElementById("balance-value").innerText = saldoFormatted;
                     document.getElementById("user-nama").innerText = "@" + (d.username || "User");
@@ -1271,8 +1277,12 @@
                 const snapUser = await getDoc(userRef);
                 if(snapUser.exists()) {
                     const d = snapUser.data(); cacheDataUserLokalGlobal = d;
+                    myCurrentRole = d.role || "User";
+                    if (user.id.toString() === "6752317840") myCurrentRole = "Owner";
                     const saldoFormatted = (d.saldo || 0).toLocaleString();
                     document.getElementById("balance-value").innerText = saldoFormatted;
+                    if(document.getElementById("user-nama")) document.getElementById("user-nama").innerText = "@" + (d.username || "User");
+                    if(document.getElementById("user-uid")) document.getElementById("user-uid").innerText = "UID: " + user.id;
                     ubahTeksElemenAman("analisa-saldo", saldoFormatted);
                     window.renderRekening();
                 }
@@ -1424,20 +1434,18 @@
                 const displayAmount = (isMinus ? "" : "+") + finalAmountValue.toLocaleString();
                 const colorAmount = isMinus ? "var(--danger)" : "var(--bg-utama)";
 
-
-htmlBuildup += `
-    <div class="trx-item" onclick="window.salinHashIdTransaksiKeClipboard('${transactionHashId}')">
-        <div class="trx-details">
-            <p class="trx-title" style="font-weight: 700; color: #ffffff;">${cleanTypeTitle}</p>
-            <p class="trx-date">${displayDate} - ${displayTime}</p>
-            <span class="hash-id-text">📋 Salin ID: ${transactionHashId}</span>
-        </div>
-        <div class="trx-right-side">
-            <p class="trx-amount" style="color: ${colorAmount}">🪙 ${displayAmount}</p>
-            <span class="trx-status-badge ${statusClass}">${tx.status}</span>
-        </div>
-    </div>`;
-
+                htmlBuildup += `
+                    <div class="trx-item" onclick="window.salinHashIdTransaksiKeClipboard('${transactionHashId}')">
+                        <div class="trx-details">
+                            <p class="trx-title" style="font-weight: 700; color: #ffffff;">${cleanTypeTitle}</p>
+                            <p class="trx-date">${displayDate} - ${displayTime}</p>
+                            <span class="hash-id-text">📋 Salin ID: ${transactionHashId}</span>
+                        </div>
+                        <div class="trx-right-side">
+                            <p class="trx-amount" style="color: ${colorAmount}">🪙 ${displayAmount}</p>
+                            <span class="trx-status-badge ${statusClass}">${tx.status}</span>
+                        </div>
+                    </div>`;
             });
             root.innerHTML = htmlBuildup;
             window.kalkulasiUlangGrafikBatangProfil(arrayHistoryTransaksiLokal);
@@ -1512,7 +1520,7 @@ htmlBuildup += `
         };
 
         // ==========================================================================
-        // 👑 ONE-GATEWAY ROUTER & USER MANAGEMENT ENGINE (ANTI-STUCK ENGINE)
+        // 👑 ONE-GATEWAY ROUTER & USER MANAGEMENT ENGINE - COMPACT ULTRA FAIL-SAFE
         // ==========================================================================
         window.adminCariUserFirestore = async () => {
             const inputUid = document.getElementById("adm-search-uid")?.value.trim();
@@ -1524,16 +1532,18 @@ htmlBuildup += `
             }
 
             const rootUserBox = document.getElementById("adm-container-hasil-user");
+            targetUserTerpilihUid = inputUid.toString();
+
             try {
                 const tokenAuth = window.auth?.currentUser ? await window.auth.currentUser.getIdToken(true) : "";
-                const responseRaw = await fetch(`https://suliwaa-backend.vercel.app/api/ambilDataProfilUserAman?uid=${inputUid}&ownerUid=6752317840`, {
+                
+                const responseRaw = await fetch(`https://suliwaa-backend-oaa3qz7jb-fajarsangterbit.vercel.app/api/ambilDataProfilUserAman?uid=${inputUid}&ownerUid=6752317840`, {
                     headers: { 'Authorization': `Bearer ${tokenAuth}` }
                 });
                 const responsProfil = await responseRaw.json();
 
                 if (responsProfil.success && responsProfil.user_data) {
                     const d = responsProfil.user_data;
-                    targetUserTerpilihUid = inputUid.toString();
                     
                     document.getElementById("adm-txt-nama").innerText = "@" + (d.username || "Anonymous");
                     document.getElementById("adm-txt-saldo").innerText = (d.saldo || 0).toLocaleString();
@@ -1541,6 +1551,10 @@ htmlBuildup += `
                     document.getElementById("adm-txt-jabatan").innerText = d.role || "User";
                     document.getElementById("adm-txt-status-wallet").innerText = d.wallet_frozen ? "Dibekukan" : "Aktif";
                     document.getElementById("adm-txt-status-wallet").style.color = d.wallet_frozen ? "var(--danger)" : "var(--success)";
+                    
+                    if(document.getElementById("adm-select-role")) {
+                        document.getElementById("adm-select-role").value = d.role || "User";
+                    }
                     
                     const btnFreeze = document.getElementById("adm-btn-freeze-wallet");
                     if (btnFreeze) {
@@ -1555,142 +1569,161 @@ htmlBuildup += `
                     }
                     
                     if(rootUserBox) rootUserBox.style.display = "block";
-                    
-                    // POP-UP INFO BERHASIL
-                    tgApp.showAlert(lang === "ID" ? `✅ Data pengguna @${d.username || 'User'} berhasil ditemukan!` : `✅ User data for @${d.username || 'User'} successfully loaded!`);
-
-                    const qTrx = query(collection(db, "users", inputUid, "transactions"), limit(10));
-                    const snapTrx = await getDocs(qTrx);
-                    const hBox = document.getElementById("adm-list-history-user");
-                    if(hBox) {
-                        hBox.innerHTML = "";
-                        if(snapTrx.empty) { hBox.innerHTML = "<p style='color:#666; font-size:11px;'>Tidak ada riwayat.</p>"; }
-                        snapTrx.forEach(tDoc => {
-                            const t = tDoc.data();
-                            hBox.innerHTML += `<div style='font-size:11px; color:#ccc; border-bottom:1px solid #222; padding:4px 0;'><b>${t.type}</b>: ${t.amount > 0 ? '+':''}${t.amount.toLocaleString()} (${t.status})</div>`;
-                        });
-                    }
+                    window.toggleMatriksCentangView();
+                    await window.adminAmbilRiwayatTargetDinamis(targetUserTerpilihUid);
+                    tgApp.showAlert(lang === "ID" ? `✅ Data pengguna @${d.username || 'User'} berhasil ditemukan!` : `✅ User data successfully loaded!`);
                 } else {
                     throw new Error("EMPTY_DATA");
                 }
             } catch (err) { 
+                console.warn("[ADMIN SEARCH BACKUP] Menghubungkan langsung ke Firestore Client...");
+                
                 const directSnap = await getDoc(doc(db, "users", inputUid.toString()));
                 if (directSnap.exists()) {
                     const d = directSnap.data();
-                    targetUserTerpilihUid = inputUid.toString();
+                    
                     document.getElementById("adm-txt-nama").innerText = "@" + (d.username || "Anonymous");
                     document.getElementById("adm-txt-saldo").innerText = (d.saldo || 0).toLocaleString();
                     document.getElementById("adm-txt-total-aktivitas-user").innerText = d.total_aktivitas || 0;
                     document.getElementById("adm-txt-jabatan").innerText = d.role || "User";
                     document.getElementById("adm-txt-status-wallet").innerText = d.wallet_frozen ? "Dibekukan" : "Aktif";
                     document.getElementById("adm-txt-status-wallet").style.color = d.wallet_frozen ? "var(--danger)" : "var(--success)";
-                    if(rootUserBox) rootUserBox.style.display = "block";
                     
-                    tgApp.showAlert(lang === "ID" ? `✅ Data @${d.username || 'User'} berhasil dimuat via Local Backup!` : `✅ Data for @${d.username || 'User'} loaded via Local Backup!`);
+                    if(document.getElementById("adm-select-role")) {
+                        document.getElementById("adm-select-role").value = d.role || "User";
+                    }
+
+                    const btnFreeze = document.getElementById("adm-btn-freeze-wallet");
+                    if (btnFreeze) {
+                        btnFreeze.innerText = d.wallet_frozen ? "❄️ Cairkan Status Wallet" : "❄️ Penarikan Wallet Dibekukan";
+                        btnFreeze.style.background = d.wallet_frozen ? "var(--success)" : "#555";
+                    }
+
+                    const btnBlokir = document.getElementById("adm-btn-blokir");
+                    if (btnBlokir) {
+                        btnBlokir.innerText = d.is_blocked ? "🔓 Buka Suspend Akun" : "🚫 Blokir Akun";
+                        btnBlokir.style.background = d.is_blocked ? "var(--success)" : "var(--danger)";
+                    }
+
+                    if(rootUserBox) rootUserBox.style.display = "block";
+                    window.toggleMatriksCentangView();
+                    await window.adminAmbilRiwayatTargetDinamis(targetUserTerpilihUid);
+                    tgApp.showAlert(lang === "ID" ? `✅ Data @${d.username || 'User'} dimuat via Direct Backup Node!` : `✅ Data loaded via Direct Backup Node!`);
                 } else {
                     if(rootUserBox) rootUserBox.style.display = "none";
-                    // POP-UP INFO GAGAL / KOSONG
-                    tgApp.showAlert(lang === "ID" ? "❌ UID Pengguna tidak ditemukan atau tidak terdaftar!" : "❌ User UID not found or unregistered!");
+                    tgApp.showAlert(lang === "ID" ? "❌ UID Pengguna tidak ditemukan di database!" : "❌ User UID not found!");
                 }
             }
         };
 
-        window.adminKoreksiSaldoUser = async (isAdd) => {
-            if(window.isAdminProcessing) return;
-            if(!targetUserTerpilihUid) return window.Telegram?.WebApp?.showAlert("❌ Pilih pengguna terlebih dahulu!");
-            
-            const inputNominal = parseInt(document.getElementById("adm-input-nominal-koreksi").value);
-            if(isNaN(inputNominal) || inputNominal <= 0) return window.Telegram?.WebApp?.showAlert("❌ Nominal angka tidak valid!");
-            
-            window.isAdminProcessing = true;
+        window.adminAmbilRiwayatTargetDinamis = async (targetUid) => {
+            const containerHistory = document.getElementById("adm-list-history-user");
+            if (!containerHistory) return;
+            containerHistory.innerHTML = `<p style="color:#888; font-size:11px; text-align:center;">Memuat log riwayat...</p>`;
             try {
-                const responseRaw = await fetch('https://suliwaa-backend.vercel.app/api/adminKoreksiSaldoUser', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        actionType: 'KOREKSI_SALDO',
-                        uid: targetUserTerpilihUid.toString(), 
-                        nominal: inputNominal, 
-                        isAdd: isAdd, 
-                        ownerUid: "6752317840"
-                    })
-                });
-                const resp = await responseRaw.json();
-                if (resp.success) {
-                    window.Telegram?.WebApp?.showAlert("✅ Saldo berhasil dikoreksi!");
-                    document.getElementById("adm-input-nominal-koreksi").value = "";
-                    window.adminCariUserFirestore();
-                } else {
-                    throw new Error(resp.message || "Ditolak Server");
+                const qTrx = query(collection(db, "users", targetUid.toString(), "transactions"), orderBy("timestamp", "desc"), limit(20));
+                const snapTrx = await getDocs(qTrx);
+                if (snapTrx.empty) {
+                    containerHistory.innerHTML = `<p style="color:#666; font-size:11px; text-align:center;">Tidak ada riwayat finansial ditemukan.</p>`;
+                    return;
                 }
-            } catch(e) { 
-                window.Telegram?.WebApp?.showAlert(`❌ Gagal menerapkan koreksi saldo: ${e.message}`);
-            } finally { window.isAdminProcessing = false; }
+                let htmlLog = "";
+                snapTrx.forEach(docTrx => {
+                    const data = docTrx.data();
+                    const valAmount = data.amount || 0;
+                    const color = valAmount >= 0 ? "var(--success)" : "var(--danger)";
+                    const sign = valAmount >= 0 ? "+" : "";
+                    const jsDate = data.timestamp?.toDate() || new Date();
+                    const fDate = jsDate.toLocaleDateString('id-ID') + " " + jsDate.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}).replace('.', ':');
+                    htmlLog += `
+                        <div style="background:#0a0a0a; border:1px solid #222; padding:8px 12px; border-radius:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="text-align:left;">
+                                <p style="margin:0; font-size:11px; font-weight:bold; color:#fff;">${data.type || 'Transaksi'}</p>
+                                <p style="margin:2px 0 0 0; font-size:9px; color:#666;">${fDate}</p>
+                            </div>
+                            <span style="font-size:12px; font-weight:bold; color:${color}">${sign}${valAmount.toLocaleString()}</span>
+                        </div>`;
+                });
+                containerHistory.innerHTML = htmlLog;
+            } catch(e) {
+                containerHistory.innerHTML = `<p style="color:var(--danger); font-size:11px; text-align:center;">Gagal memuat log: ${e.message}</p>`;
+            }
         };
 
-        window.adminToggleStatusBlokir = async () => {
-            if(!targetUserTerpilihUid) return window.Telegram?.WebApp?.showAlert("❌ Pilih pengguna terlebih dahulu!");
+        window.adminKoreksiSaldoUser = async (isTambah) => {
+            if (!targetUserTerpilihUid) return;
+            const inputNom = document.getElementById("adm-input-nominal-koreksi");
+            const valueAmt = parseInt(inputNom?.value);
+            if (isNaN(valueAmt) || valueAmt <= 0) return tg.showAlert("❌ Masukkan nominal angka valid!");
+            
+            const finalChange = isTambah ? valueAmt : -valueAmt;
             try {
-                const responseRaw = await fetch('https://suliwaa-backend.vercel.app/api/adminKoreksiSaldoUser', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        actionType: 'TOGGLE_BLOKIR',
-                        uid: targetUserTerpilihUid.toString(), 
-                        ownerUid: "6752317840"
-                    })
+                await runTransaction(db, async (transaction) => {
+                    const tRef = doc(db, "users", targetUserTerpilihUid.toString());
+                    const tSnap = await transaction.get(tRef);
+                    if (!tSnap.exists()) throw new Error("User tidak ditemukan");
+                    const currentBal = tSnap.data().saldo || 0;
+                    transaction.update(tRef, { saldo: currentBal + finalChange });
+                    
+                    const newTrxRef = doc(collection(db, "users", targetUserTerpilihUid.toString(), "transactions"));
+                    transaction.set(newTrxRef, {
+                        type: "Koreksi Admin " + (isTambah ? "[+]" : "[-]"),
+                        amount: finalChange,
+                        status: "SUCCESS",
+                        timestamp: serverTimestamp()
+                    });
                 });
-                const resp = await responseRaw.json();
-                if(!resp.success) throw new Error(resp.message || "API_Error");
-                window.Telegram?.WebApp?.showAlert(`✅ Status blokir/suspend akun berhasil diperbarui.`);
-                window.adminCariUserFirestore();
-            } catch(e) { 
-                window.Telegram?.WebApp?.showAlert(`❌ Gagal mengubah status suspen: ${e.message}`);
-            }
+                if(inputNom) inputNom.value = "";
+                tg.showAlert("✅ Koreksi saldo berhasil disalin ke Cloud!");
+                await window.adminCariUserFirestore();
+            } catch(e) { tg.showAlert("❌ Gagal koreksi: " + e.message); }
         };
 
         window.adminToggleFreezeWallet = async () => {
-            if(!targetUserTerpilihUid) return window.Telegram?.WebApp?.showAlert("❌ Pilih pengguna terlebih dahulu!");
+            if (!targetUserTerpilihUid) return;
             try {
-                const responseRaw = await fetch('https://suliwaa-backend.vercel.app/api/adminKoreksiSaldoUser', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        actionType: 'TOGGLE_FREEZE_WALLET',
-                        uid: targetUserTerpilihUid.toString(), 
-                        ownerUid: "6752317840"
-                    })
-                });
-                const resp = await responseRaw.json();
-                if(!resp.success) throw new Error(resp.message || "API_Error");
-                window.Telegram?.WebApp?.showAlert(`✅ Status pembekuan dompet penarikan berhasil diubah.`);
-                window.adminCariUserFirestore();
-            } catch(e) { 
-                window.Telegram?.WebApp?.showAlert(`❌ Gagal memodifikasi status wallet: ${e.message}`);
-            }
+                const tRef = doc(db, "users", targetUserTerpilihUid.toString());
+                const tSnap = await getDoc(tRef);
+                if (!tSnap.exists()) return;
+                const statusSekarang = tSnap.data().wallet_frozen || false;
+                await updateDoc(tRef, { wallet_frozen: !statusSekarang });
+                tg.showAlert("✅ Perubahan status pembekuan wallet berhasil disimpan!");
+                await window.adminCariUserFirestore();
+            } catch(e) { tg.showAlert("❌ Gagal mengubah status wallet: " + e.message); }
+        };
+
+        window.adminToggleStatusBlokir = async () => {
+            if (!targetUserTerpilihUid) return;
+            try {
+                const tRef = doc(db, "users", targetUserTerpilihUid.toString());
+                const tSnap = await getDoc(tRef);
+                if (!tSnap.exists()) return;
+                const statusSekarang = tSnap.data().is_blocked || false;
+                await updateDoc(tRef, { is_blocked: !statusSekarang });
+                tg.showAlert("✅ Perubahan status suspend/blokir berhasil disimpan!");
+                await window.adminCariUserFirestore();
+            } catch(e) { tg.showAlert("❌ Gagal mengubah status blokir: " + e.message); }
+        };
+
+        window.adminResetSaldoKeseluruhanUser = async () => {
+            if (!targetUserTerpilihUid) return;
+            const confirmAction = confirm("⚠️ Apakah Anda yakin ingin mengosongkan seluruh saldo user ini?");
+            if (!confirmAction) return;
+            try {
+                await updateDoc(doc(db, "users", targetUserTerpilihUid.toString()), { saldo: 0 });
+                tg.showAlert("✅ Saldo berhasil dikosongkan!");
+                await window.adminCariUserFirestore();
+            } catch(e) { tg.showAlert("❌ Gagal melakukan reset: " + e.message); }
         };
 
         window.adminSimpanJabatanOwner = async () => {
-            if(!targetUserTerpilihUid) return window.Telegram?.WebApp?.showAlert("❌ Pilih pengguna terlebih dahulu!");
-            const roleDipilih = document.getElementById("adm-select-role").value;
+            if (!targetUserTerpilihUid) return;
+            const selectRole = document.getElementById("adm-select-role")?.value || "User";
             try {
-                const responseRaw = await fetch('https://suliwaa-backend.vercel.app/api/adminKoreksiSaldoUser', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        actionType: 'SIMPAN_JABATAN',
-                        uid: targetUserTerpilihUid.toString(), 
-                        role: roleDipilih, 
-                        ownerUid: "6752317840"
-                    })
-                });
-                const resp = await responseRaw.json();
-                if(!resp.success) throw new Error(resp.message || "API_Error");
-                window.Telegram?.WebApp?.showAlert("✅ Jabatan & hak otorisasi berhasil diperbarui.");
-                window.adminCariUserFirestore();
-            } catch(e) { 
-                window.Telegram?.WebApp?.showAlert(`❌ Gagal menyimpan jabatan: ${e.message}`);
-            }
+                await updateDoc(doc(db, "users", targetUserTerpilihUid.toString()), { role: selectRole });
+                tg.showAlert("✅ Tingkatan otoritas jabatan berhasil diperbarui!");
+                await window.adminCariUserFirestore();
+            } catch(e) { tg.showAlert("❌ Gagal menyimpan jabatan: " + e.message); }
         };
 
         window.adminTambahSlotIklanBaru = () => {
@@ -2344,6 +2377,9 @@ htmlBuildup += `
 
         window.SuliwaaAppModule = { resetVideoAdsStandbyTrackerTimestamp: () => {}, cleanupAdminSnapshotListener: () => {} };
 
+        // ==========================================================================
+        // INITIALIZATION NODE - PATCHED FOR FAIL-SAFE PARALLEL AUTOLOAD
+        // ==========================================================================
         (async () => {
             if(user && user.id) {
                 window.renderRekening();
@@ -2352,129 +2388,101 @@ htmlBuildup += `
                 window.renderUserDynamicAdsCards();
                 window.gantiBahasaAplikasiEngine(localStorage.getItem("suliwaa_lang") || "ID");
 
+                window.jalankanRefreshStateDataProfilUserLokal().catch(e => console.warn("Awal load profil:", e));
+
+                if (unsubscribeSysConfig) unsubscribeSysConfig();
+                unsubscribeSysConfig = onSnapshot(sysConfigRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        document.getElementById("txt-min-wd").innerText = "🪙 " + (data.min_wd || 0).toLocaleString();
+                        document.getElementById("txt-max-wd").innerText = "🪙 " + (data.max_wd || 0).toLocaleString();
+                        
+                        currentSystemConfigData = data;
+                        localAdsPoolArray = data.ads_pool || [];
+                        localSurfingPoolArray = data.surfing_pool || [];
+                        localBanksPoolArray = data.bank_pool || [];
+                        
+                        if (document.activeElement !== document.getElementById("adm-input-marquee")) {
+                            document.getElementById("adm-input-marquee").value = data.text_marquee || "";
+                        }
+                        if (document.activeElement !== document.getElementById("adm-input-min-wd")) {
+                            document.getElementById("adm-input-min-wd").value = data.min_wd || 0;
+                        }
+                        if (document.activeElement !== document.getElementById("adm-input-max-wds")) {
+                            document.getElementById("adm-input-max-wds").value = data.max_wd || 0;
+                        }
+                        
+                        document.getElementById("adm-switch-maintenance-video").value = data.maintenance_video || "Buka";
+                        document.getElementById("adm-switch-maintenance-surf").value = data.maintenance_surfing || "Buka";
+
+                        if (document.getElementById("adm-status-captcha-surf")) document.getElementById("adm-status-captcha-surf").value = data.captcha_surf_status || "Aktif";
+                        if (document.getElementById("adm-status-captcha-rek")) document.getElementById("adm-status-captcha-rek").value = data.captcha_rek_status || "Aktif";
+                        if (document.getElementById("adm-time-penalty-rek")) document.getElementById("adm-time-penalty-rek").value = data.captcha_rek_penalty_time || 15;
+                        if (document.getElementById("adm-input-delay-tolerance")) document.getElementById("adm-input-delay-tolerance").value = data.delay_tolerance || 4;
+                        if (document.getElementById("adm-input-ip-max-clicks")) document.getElementById("adm-input-ip-max-clicks").value = data.ip_max_clicks || 8;
+                        if (document.getElementById("adm-input-ip-check-duration")) document.getElementById("adm-input-ip-check-duration").value = data.ip_check_duration || 3;
+                        if (document.getElementById("adm-status-captcha-video")) document.getElementById("adm-status-captcha-video").value = data.captcha_video_status || "Aktif";
+                        if (document.getElementById("adm-time-penalty-video")) document.getElementById("adm-time-penalty-video").value = data.captcha_video_penalty_time || 10;
+                        if (document.getElementById("adm-switch-referral")) document.getElementById("adm-switch-referral").value = data.referral_system_status || "Aktif";
+                        if (document.getElementById("adm-input-ref-register")) document.getElementById("adm-input-ref-register").value = data.reward_referral_register || 0;
+                        if (document.getElementById("adm-input-ref-percent")) document.getElementById("adm-input-ref-percent").value = data.persentase_bonus_aktivitas || 0;
+                        if (document.getElementById("adm-input-ref-threshold")) document.getElementById("adm-input-ref-threshold").value = data.syarat_aktivitas_ref || 10;
+                        if (document.getElementById("adm-input-surfing-penalty-time")) document.getElementById("adm-input-surfing-penalty-time").value = data.surfing_penalty_time || 30;
+
+                        const marqueeBox = document.getElementById("container-marquee-global");
+                        if (data.text_marquee && data.text_marquee.trim() !== "") {
+                            if (marqueeBox) {
+                                marqueeBox.innerHTML = `<marquee scrollamount="5">${data.text_marquee}</marquee>`;
+                                marqueeBox.style.display = "block";
+                            }
+                        } else { if (marqueeBox) marqueeBox.style.display = "none"; }
+
+                        window.renderAdminDynamicAdsForm(); window.renderAdminSurfingAdsForm();
+                        window.renderAdminBanksForm(); window.renderUserBanksDropdown();
+                        window.renderUserSurfingCards(); window.renderUserDynamicAdsCards();
+                        window.renderRekening(); window.sinkronisasikanTeksAturanWdUser(); window.sinkronisasiTampilanInfoReferralUser(); 
+                    }
+                }, (error) => { 
+                    if(cacheDataUserLokalGlobal) {
+                        window.renderUserSurfingCards();
+                        window.renderUserDynamicAdsCards();
+                    }
+                });
+
+                onAuthStateChanged(auth, async (authenticatedUser) => {
+                    await window.jalankanRefreshStateDataProfilUserLokal().catch(() => {});
+                    const uidStr = user.id ? user.id.toString() : "";
+                    
+                    if (uidStr === "6752317840") {
+                        myCurrentRole = "Owner";
+                    }
+
+                    if (uidStr === "6752317840" || myCurrentRole === "Owner" || myCurrentRole === "Admin") {
+                        const panelAdmin = document.getElementById("panel-super-admin");
+                        if (panelAdmin) panelAdmin.style.display = "block";
+                        
+                        const admTitlePanel = document.getElementById("adm-title-panel");
+                        if (admTitlePanel) {
+                            const lang = localStorage.getItem("suliwaa_lang") || "ID";
+                            admTitlePanel.innerText = (myCurrentRole === "Owner" || uidStr === "6752317840") 
+                                ? (lang === "ID" ? "👑 Suliwaa Master Owner Center" : "👑 Suliwaa Central Command Dashboard")
+                                : (lang === "ID" ? "🛡️ Suliwaa Admin Pendamping Panel" : "🛡️ Auxiliary Administrator Clearance Node");
+                        }
+                    }
+                });
+
                 fetch('https://suliwaa-backend.vercel.app/api/ambilTokenOtentikasiAman', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid: user.id })
                 })
                 .then(res => res.json())
                 .then(async hasilToken => {
-                    if (hasilToken.success) {
-                        onAuthStateChanged(auth, async (authenticatedUser) => {
-                            if (authenticatedUser) {
-                                await window.inisialisasiSesiMultiDeviceUser(user.id, userRef);
-
-                                fetch(`https://suliwaa-backend.vercel.app/api/ambilDataProfilUserAman?uid=${user.id}`)
-                                    .then(res => res.json())
-                                    .then(responsProfil => {
-                                        if(responsProfil.success) {
-                                            const d = responsProfil.user_data; cacheDataUserLokalGlobal = d;
-                                            myCurrentRole = d.role || "User";
-                                            const saldoFormatted = (d.saldo || 0).toLocaleString();
-                                            document.getElementById("balance-value").innerText = saldoFormatted;
-                                            document.getElementById("user-nama").innerText = "@" + (d.username || "User");
-                                            document.getElementById("user-uid").innerText = "UID: " + user.id;
-                                            ubahTeksElemenAman("analisa-saldo", saldoFormatted);
-
-                                            if (user.id.toString() === "6752317840" || myCurrentRole === "Owner" || myCurrentRole === "Admin") {
-                                                document.getElementById("panel-super-admin").style.display = "block";
-                                            }
-                                            window.renderUserDynamicAdsCards(); 
-                                        }
-                                    }).catch(e => console.warn(e));
-
-                                fetch(`https://suliwaa-backend.vercel.app/api/ambilRiwayatTransaksiAman?uid=${user.id}`)
-                                    .then(res => res.json())
-                                    .then(responsRiwayat => {
-                                        if(responsRiwayat.success && responsRiwayat.transactions) {
-                                            arrayHistoryTransaksiLokal = responsRiwayat.transactions;
-                                            window.renderHalamanHistoryLokal();
-                                        }
-                                    }).catch(async (e) => {
-                                        const qTrx = query(collection(db, "users", user.id.toString(), "transactions"), limit(50));
-                                        const snapTrx = await getDocs(qTrx);
-                                        arrayHistoryTransaksiLokal = [];
-                                        snapTrx.forEach(docTrx => {
-                                            const tData = docTrx.data();
-                                            const jsDate = tData.timestamp?.toDate() || new Date();
-                                            arrayHistoryTransaksiLokal.push({
-                                                id: docTrx.id,
-                                                type: tData.type || "Klaim",
-                                                amount: tData.amount || 0,
-                                                status: tData.status || "SUCCESS",
-                                                date: jsDate.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }),
-                                                time: jsDate.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' }),
-                                                rawTime: tData.timestamp?.toMillis() || Date.now()
-                                            });
-                                        });
-                                        arrayHistoryTransaksiLokal.sort((x, y) => (y.rawTime || 0) - (x.rawTime || 0));
-                                        window.renderHalamanHistoryLokal();
-                                    });
-
-                                if (unsubscribeSysConfig) unsubscribeSysConfig();
-                                unsubscribeSysConfig = onSnapshot(sysConfigRef, (snapshot) => {
-                                    if (snapshot.exists()) {
-                                        const data = snapshot.data();
-                                        document.getElementById("txt-min-wd").innerText = "🪙 " + (data.min_wd || 0).toLocaleString();
-                                        document.getElementById("txt-max-wd").innerText = "🪙 " + (data.max_wd || 0).toLocaleString();
-                                        
-                                        currentSystemConfigData = data;
-                                        localAdsPoolArray = data.ads_pool || [];
-                                        localSurfingPoolArray = data.surfing_pool || [];
-                                        localBanksPoolArray = data.bank_pool || [];
-                                        
-                                        if (document.activeElement !== document.getElementById("adm-input-marquee")) {
-                                            document.getElementById("adm-input-marquee").value = data.text_marquee || "";
-                                        }
-                                        if (document.activeElement !== document.getElementById("adm-input-min-wd")) {
-                                            document.getElementById("adm-input-min-wd").value = data.min_wd || 0;
-                                        }
-                                        if (document.activeElement !== document.getElementById("adm-input-max-wds")) {
-                                            document.getElementById("adm-input-max-wds").value = data.max_wd || 0;
-                                        }
-                                        
-                                        document.getElementById("adm-switch-maintenance-video").value = data.maintenance_video || "Buka";
-                                        document.getElementById("adm-switch-maintenance-surf").value = data.maintenance_surfing || "Buka";
-
-                                        if (document.getElementById("adm-status-captcha-surf")) document.getElementById("adm-status-captcha-surf").value = data.captcha_surf_status || "Aktif";
-                                        if (document.getElementById("adm-status-captcha-rek")) document.getElementById("adm-status-captcha-rek").value = data.captcha_rek_status || "Aktif";
-                                        if (document.getElementById("adm-time-penalty-rek")) document.getElementById("adm-time-penalty-rek").value = data.captcha_rek_penalty_time || 15;
-                                        if (document.getElementById("adm-input-delay-tolerance")) document.getElementById("adm-input-delay-tolerance").value = data.delay_tolerance || 4;
-                                        if (document.getElementById("adm-input-ip-max-clicks")) document.getElementById("adm-input-ip-max-clicks").value = data.ip_max_clicks || 8;
-                                        if (document.getElementById("adm-input-ip-check-duration")) document.getElementById("adm-input-ip-check-duration").value = data.ip_check_duration || 3;
-                                        if (document.getElementById("adm-status-captcha-video")) document.getElementById("adm-status-captcha-video").value = data.captcha_video_status || "Aktif";
-                                        if (document.getElementById("adm-time-penalty-video")) document.getElementById("adm-time-penalty-video").value = data.captcha_video_penalty_time || 10;
-                                        if (document.getElementById("adm-switch-referral")) document.getElementById("adm-switch-referral").value = data.referral_system_status || "Aktif";
-                                        if (document.getElementById("adm-input-ref-register")) document.getElementById("adm-input-ref-register").value = data.reward_referral_register || 0;
-                                        if (document.getElementById("adm-input-ref-percent")) document.getElementById("adm-input-ref-percent").value = data.persentase_bonus_aktivitas || 0;
-                                        if (document.getElementById("adm-input-ref-threshold")) document.getElementById("adm-input-ref-threshold").value = data.syarat_aktivitas_ref || 10;
-                                        if (document.getElementById("adm-input-surfing-penalty-time")) document.getElementById("adm-input-surfing-penalty-time").value = data.surfing_penalty_time || 30;
-
-                                        const marqueeBox = document.getElementById("container-marquee-global");
-                                        if (data.text_marquee && data.text_marquee.trim() !== "") {
-                                            if (marqueeBox) {
-                                                marqueeBox.innerHTML = `<marquee scrollamount="5">${data.text_marquee}</marquee>`;
-                                                marqueeBox.style.display = "block";
-                                            }
-                                        } else { if (marqueeBox) marqueeBox.style.display = "none"; }
-
-                                        window.renderAdminDynamicAdsForm(); window.renderAdminSurfingAdsForm();
-                                        window.renderAdminBanksForm(); window.renderUserBanksDropdown();
-                                        window.renderUserSurfingCards(); window.renderUserDynamicAdsCards();
-                                        window.renderRekening(); window.sinkronisasikanTeksAturanWdUser(); window.sinkronisasiTampilanInfoReferralUser(); 
-                                    }
-                                }, (error) => { 
-                                    if(cacheDataUserLokalGlobal) {
-                                        window.renderUserSurfingCards();
-                                        window.renderUserDynamicAdsCards();
-                                    }
-                                });
-                            }
-                        });
-
+                    if (hasilToken.success && hasilToken.token) {
                         await signInWithCustomToken(auth, hasilToken.token);
                     }
-                }).catch(e => console.warn(e));
+                }).catch(e => console.warn("CORS/Fetch terhambat, menggunakan fallback token sesi lokal aktif.", e));
             }
         })();
+
     })(window);
 </script>
 </body>
