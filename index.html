@@ -697,7 +697,7 @@
                         <p style="margin: 0 0 4px 0; font-size: 13px;">Saldo Aktif: <b id="adm-txt-saldo" style="color:var(--bg-utama)">-</b></p>
                         <p style="margin: 0 0 4px 0; font-size: 11px; color: #ffaa00;">Aktivitas Mandiri Akun: <b id="adm-txt-total-aktivitas-user" style="color:#fff">0</b> Klik</p>
                         <p style="margin: 0 0 6px 0; font-size: 11px; color: #aaa;">Status Dompet: <b id="adm-txt-status-wallet" style="color:var(--success)">Aktif</b></p>
-                        <p style="margin: 0 0 12px 0; font-size: 11px; color: #88./;">Tingkatan Jabatan: <b id="adm-txt-jabatan" style="color:var(--warning);">-</b></p>
+                        <p style="margin: 0 0 12px 0; font-size: 11px; color: #888;">Tingkatan Jabatan: <b id="adm-txt-jabatan" style="color:var(--warning);">-</b></p>
                         
                         <button id="btn-adm-reset-saldo" onclick="window.adminResetSaldoKeseluruhanUser()" class="btn-adm-action-warning" style="width: 100%; padding: 12px; font-size: 12px; margin-bottom: 10px;">⚠️ Reset Saldo Keseluruhan User</button>
                         <button id="adm-btn-freeze-wallet" onclick="window.adminToggleFreezeWallet()" class="btn-adm-action-primary" style="width: 100%; padding: 12px; font-size: 12px; margin-bottom: 15px; background: #555;">❄️ Penarikan Wallet Dibekukan</button>
@@ -1424,18 +1424,20 @@
                 const displayAmount = (isMinus ? "" : "+") + finalAmountValue.toLocaleString();
                 const colorAmount = isMinus ? "var(--danger)" : "var(--bg-utama)";
 
-                htmlBuildup += `
-                    <div class="trx-item" onclick="window.salinHashIdTransaksiKeClipboard('${transactionHashId}')">
-                        <div class="trx-details">
-                            <p class="trx-title" style="font-weight: 700; color: #ffffff;">${cleanTypeTitle}</p>
-                            <p class="trx-date">${displayDate} - ${displayTime}</p>
-                            <span class="hash-id-text">📋 Salin ID: ${transactionHashId}</span>
-                        </div>
-                        <div class="trx-right-side">
-                            <p class="trx-amount" style="color: ${colorAmount}">🪙 ${displayAmount}</p>
-                            <span class="trx-status-badge ${statusClass}">${tx.status}</span>
-                        </div>
-                    </div>`;
+
+htmlBuildup += `
+    <div class="trx-item" onclick="window.salinHashIdTransaksiKeClipboard('${transactionHashId}')">
+        <div class="trx-details">
+            <p class="trx-title" style="font-weight: 700; color: #ffffff;">${cleanTypeTitle}</p>
+            <p class="trx-date">${displayDate} - ${displayTime}</p>
+            <span class="hash-id-text">📋 Salin ID: ${transactionHashId}</span>
+        </div>
+        <div class="trx-right-side">
+            <p class="trx-amount" style="color: ${colorAmount}">🪙 ${displayAmount}</p>
+            <span class="trx-status-badge ${statusClass}">${tx.status}</span>
+        </div>
+    </div>`;
+
             });
             root.innerHTML = htmlBuildup;
             window.kalkulasiUlangGrafikBatangProfil(arrayHistoryTransaksiLokal);
@@ -1510,9 +1512,9 @@
         };
 
         // ==========================================================================
-        // 👑 ONE-GATEWAY ROUTER & USER MANAGEMENT ENGINE (KOREKSI, JABATAN, BAN, FREEZE)
+        // 👑 ONE-GATEWAY ROUTER & USER MANAGEMENT ENGINE (ANTI-STUCK ENGINE)
         // ==========================================================================
-                window.adminCariUserFirestore = async () => {
+        window.adminCariUserFirestore = async () => {
             const inputUid = document.getElementById("adm-search-uid")?.value.trim();
             const tgApp = window.Telegram?.WebApp || { showAlert: (m) => alert(m) };
             const lang = localStorage.getItem("suliwaa_lang") || "ID";
@@ -1554,7 +1556,7 @@
                     
                     if(rootUserBox) rootUserBox.style.display = "block";
                     
-                    // Pemicu Alert Sukses Menemukan Data User
+                    // POP-UP INFO BERHASIL
                     tgApp.showAlert(lang === "ID" ? `✅ Data pengguna @${d.username || 'User'} berhasil ditemukan!` : `✅ User data for @${d.username || 'User'} successfully loaded!`);
 
                     const qTrx = query(collection(db, "users", inputUid, "transactions"), limit(10));
@@ -1587,9 +1589,131 @@
                     tgApp.showAlert(lang === "ID" ? `✅ Data @${d.username || 'User'} berhasil dimuat via Local Backup!` : `✅ Data for @${d.username || 'User'} loaded via Local Backup!`);
                 } else {
                     if(rootUserBox) rootUserBox.style.display = "none";
+                    // POP-UP INFO GAGAL / KOSONG
                     tgApp.showAlert(lang === "ID" ? "❌ UID Pengguna tidak ditemukan atau tidak terdaftar!" : "❌ User UID not found or unregistered!");
                 }
             }
+        };
+
+        window.adminKoreksiSaldoUser = async (isAdd) => {
+            if(window.isAdminProcessing) return;
+            if(!targetUserTerpilihUid) return window.Telegram?.WebApp?.showAlert("❌ Pilih pengguna terlebih dahulu!");
+            
+            const inputNominal = parseInt(document.getElementById("adm-input-nominal-koreksi").value);
+            if(isNaN(inputNominal) || inputNominal <= 0) return window.Telegram?.WebApp?.showAlert("❌ Nominal angka tidak valid!");
+            
+            window.isAdminProcessing = true;
+            try {
+                const responseRaw = await fetch('https://suliwaa-backend.vercel.app/api/adminKoreksiSaldoUser', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        actionType: 'KOREKSI_SALDO',
+                        uid: targetUserTerpilihUid.toString(), 
+                        nominal: inputNominal, 
+                        isAdd: isAdd, 
+                        ownerUid: "6752317840"
+                    })
+                });
+                const resp = await responseRaw.json();
+                if (resp.success) {
+                    window.Telegram?.WebApp?.showAlert("✅ Saldo berhasil dikoreksi!");
+                    document.getElementById("adm-input-nominal-koreksi").value = "";
+                    window.adminCariUserFirestore();
+                } else {
+                    throw new Error(resp.message || "Ditolak Server");
+                }
+            } catch(e) { 
+                window.Telegram?.WebApp?.showAlert(`❌ Gagal menerapkan koreksi saldo: ${e.message}`);
+            } finally { window.isAdminProcessing = false; }
+        };
+
+        window.adminToggleStatusBlokir = async () => {
+            if(!targetUserTerpilihUid) return window.Telegram?.WebApp?.showAlert("❌ Pilih pengguna terlebih dahulu!");
+            try {
+                const responseRaw = await fetch('https://suliwaa-backend.vercel.app/api/adminKoreksiSaldoUser', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        actionType: 'TOGGLE_BLOKIR',
+                        uid: targetUserTerpilihUid.toString(), 
+                        ownerUid: "6752317840"
+                    })
+                });
+                const resp = await responseRaw.json();
+                if(!resp.success) throw new Error(resp.message || "API_Error");
+                window.Telegram?.WebApp?.showAlert(`✅ Status blokir/suspend akun berhasil diperbarui.`);
+                window.adminCariUserFirestore();
+            } catch(e) { 
+                window.Telegram?.WebApp?.showAlert(`❌ Gagal mengubah status suspen: ${e.message}`);
+            }
+        };
+
+        window.adminToggleFreezeWallet = async () => {
+            if(!targetUserTerpilihUid) return window.Telegram?.WebApp?.showAlert("❌ Pilih pengguna terlebih dahulu!");
+            try {
+                const responseRaw = await fetch('https://suliwaa-backend.vercel.app/api/adminKoreksiSaldoUser', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        actionType: 'TOGGLE_FREEZE_WALLET',
+                        uid: targetUserTerpilihUid.toString(), 
+                        ownerUid: "6752317840"
+                    })
+                });
+                const resp = await responseRaw.json();
+                if(!resp.success) throw new Error(resp.message || "API_Error");
+                window.Telegram?.WebApp?.showAlert(`✅ Status pembekuan dompet penarikan berhasil diubah.`);
+                window.adminCariUserFirestore();
+            } catch(e) { 
+                window.Telegram?.WebApp?.showAlert(`❌ Gagal memodifikasi status wallet: ${e.message}`);
+            }
+        };
+
+        window.adminSimpanJabatanOwner = async () => {
+            if(!targetUserTerpilihUid) return window.Telegram?.WebApp?.showAlert("❌ Pilih pengguna terlebih dahulu!");
+            const roleDipilih = document.getElementById("adm-select-role").value;
+            try {
+                const responseRaw = await fetch('https://suliwaa-backend.vercel.app/api/adminKoreksiSaldoUser', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        actionType: 'SIMPAN_JABATAN',
+                        uid: targetUserTerpilihUid.toString(), 
+                        role: roleDipilih, 
+                        ownerUid: "6752317840"
+                    })
+                });
+                const resp = await responseRaw.json();
+                if(!resp.success) throw new Error(resp.message || "API_Error");
+                window.Telegram?.WebApp?.showAlert("✅ Jabatan & hak otorisasi berhasil diperbarui.");
+                window.adminCariUserFirestore();
+            } catch(e) { 
+                window.Telegram?.WebApp?.showAlert(`❌ Gagal menyimpan jabatan: ${e.message}`);
+            }
+        };
+
+        window.adminTambahSlotIklanBaru = () => {
+            const idBaru = "ad_" + Date.now();
+            localAdsPoolArray.push({ 
+                id: idBaru, 
+                name: "Slot " + (localAdsPoolArray.length + 1), 
+                reward: 20, 
+                cooldown: 30, 
+                max_views: 0, 
+                remaining_views: 0,
+                network_provider: "custom",
+                url_direct_link: "https://",
+                network_timeout: 3,
+                zone_id: "",       
+                sdk_trigger: ""    
+            });
+            window.renderAdminDynamicAdsForm();
+        };
+
+        window.adminHapusSlotIklanBaru = (index) => {
+            localAdsPoolArray.splice(index, 1);
+            window.renderAdminDynamicAdsForm();
         };
 
         window.adminTambahSlotMisiJelajahBaru = () => {
@@ -1883,7 +2007,7 @@
                 return;
             }
 
-            const configDinamisLive = (currentSystemConfigData.ads_pool || lockAdsPoolArray)[indexTarget];
+            const configDinamisLive = (currentSystemConfigData.ads_pool || [])[indexTarget];
             const adConfig = configDinamisLive || localAdsPoolArray[indexTarget];
             const textStatus = document.getElementById(`status-${adConfig.id}`);
             if (textStatus) { textStatus.innerText = "Processing..."; textStatus.style.color = "var(--warning)"; }
@@ -1891,10 +2015,8 @@
             try {
                 const tokenAuth = auth.currentUser ? await auth.currentUser.getIdToken(true) : "";
                 
-                // STANDARISASI MULTI-SDK PARSING: Memisahkan penanganan muatan skrip Monetag dan Adsterra Engine
                 if (adConfig.network_provider === "monetag" || adConfig.network_provider === "adsterra") {
                     if (adConfig.network_provider === "adsterra") {
-                        // Adsterra Pipeline Bridge: Eksekusi Direct Skrip Fallback Interface
                         tg.openLink(adConfig.url_direct_link);
                     } else {
                         const scriptSlot = document.createElement("script");
@@ -2355,6 +2477,5 @@
         })();
     })(window);
 </script>
-<script src="https://landslidegraphsystems.com/66/45/e5/6645e5f3a42d2688c77778c3ce476e34.js"></script>
 </body>
 </html>
